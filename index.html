@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#15171b">
+<title>Foster Teleprompter | Foster Tech Soluções</title>
+<style>
+:root{--red:#e1262f;--bg:#101114;--panel:#1b1d22;--muted:#a8abb3;--white:#f5f5f6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--white);font-family:system-ui,Arial,sans-serif}
+header{padding:16px 20px;border-bottom:1px solid #303239;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.brand{font-weight:900;letter-spacing:1px}.brand span{color:var(--red)}.tag{font-size:10px;border:1px solid #454750;border-radius:20px;padding:5px 8px;color:#ccc}
+main{max-width:1180px;margin:auto;padding:16px;display:grid;grid-template-columns:340px 1fr;gap:16px}
+.panel{background:var(--panel);border:1px solid #303239;border-radius:15px;padding:15px}
+h2{font-size:15px;margin:0 0 12px}label{display:block;color:var(--muted);font-size:12px;margin:11px 0 6px}
+input,textarea,select{width:100%;background:#111317;color:white;border:1px solid #41444d;border-radius:9px;padding:10px;font:inherit}
+textarea{height:180px;resize:vertical;line-height:1.5}
+button{background:#343740;color:white;border:0;border-radius:9px;padding:10px 12px;font-weight:700;cursor:pointer}
+button.primary{background:var(--red)}button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cameraWrap,.screen{background:#070809;border:1px solid #34363d;border-radius:12px;overflow:hidden;min-height:320px;position:relative}
+video{width:100%;height:100%;min-height:320px;object-fit:cover;display:block;background:#050505}
+.camLabel{position:absolute;top:10px;left:10px;background:#000a;padding:5px 8px;border-radius:7px;font-size:11px}
+.screen{min-height:320px}.reading{height:320px;overflow:auto;padding:100px 8% 120px;font-size:30px;line-height:1.55;text-align:center;white-space:pre-wrap;scrollbar-width:thin}
+.screen.mirror .reading{transform:scaleX(-1)}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.controls button{flex:1;min-width:100px}
+.status{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}.recording{color:#ff7379}
+.hint{font-size:11px;color:var(--muted);line-height:1.5}
+@media(max-width:800px){main{grid-template-columns:1fr;padding:10px}.stage{grid-template-columns:1fr}.cameraWrap,.screen{min-height:260px}video{min-height:260px}.reading{height:300px;font-size:28px}}
+</style>
+</head>
+<body>
+<header><div class="brand"><span>FOSTER</span> TELEPROMPTER</div><div class="tag">V0.2 • FOSTER TECH SOLUÇÕES</div></header>
+<main>
+<section class="panel">
+<h2>Roteiro e ajustes</h2>
+<label for="title">Nome do roteiro</label><input id="title" value="Meu roteiro">
+<label for="script">Texto para leitura</label>
+<textarea id="script">Olá! Seja bem-vindo ao Foster Teleprompter.
+
+Agora você pode acompanhar seu roteiro e testar a gravação com a câmera do celular.
+
+Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a lente.</textarea>
+<div class="actions"><button class="primary" id="update">Atualizar texto</button><button id="save">Salvar roteiro</button></div>
+<label for="speed">Velocidade: <b id="speedVal">3</b></label><input id="speed" type="range" min="1" max="10" value="3">
+<label for="font">Tamanho da letra: <b id="fontVal">30 px</b></label><input id="font" type="range" min="20" max="56" value="30">
+<label class="row"><span>Espelhar texto</span><input id="mirror" type="checkbox" style="width:auto"></label>
+<p class="hint">A gravação depende da permissão de câmera/microfone e de um contexto seguro (HTTPS ou localhost). O arquivo de vídeo é gerado no próprio aparelho.</p>
+</section>
+<section class="panel">
+<h2>Estúdio de gravação</h2>
+<div class="stage">
+<div class="cameraWrap"><video id="camera" autoplay muted playsinline></video><div class="camLabel">PRÉVIA DA CÂMERA</div></div>
+<div class="screen" id="screen"><div class="reading" id="reading"></div></div>
+</div>
+<div class="controls">
+<button id="cameraBtn" class="primary">Ativar câmera</button><button id="switchBtn">Trocar câmera</button>
+<button id="playBtn">▶ Iniciar leitura</button><button id="pauseBtn">Ⅱ Pausar</button>
+<button id="resetBtn">↥ Reiniciar</button><button id="recordBtn" class="primary" disabled>● Gravar vídeo</button>
+<button id="stopBtn" disabled>■ Encerrar gravação</button>
+</div>
+<div class="status" id="status">Aguardando ativação da câmera. A leitura pode ser testada sem gravar.</div>
+<div class="actions"><a id="download" style="display:none;color:#ff7379;font-weight:700" download="foster-teleprompter.webm">Baixar vídeo gravado</a></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let stream=null,recorder=null,chunks=[],raf=null,last=0,playing=false,facing='user',lastUrl=null;
+function render(){ $('reading').textContent=$('script').value||'Seu roteiro aparecerá aqui.';$('reading').scrollTop=0}
+function pause(){playing=false;if(raf)cancelAnimationFrame(raf);raf=null;last=0}
+function tick(t){if(!playing)return;if(!last)last=t;const dt=Math.min(t-last,50);last=t;$('reading').scrollTop+=dt*Number($('speed').value)*.018;raf=requestAnimationFrame(tick)}
+function play(){if(playing)return;playing=true;last=0;raf=requestAnimationFrame(tick)}
+async function startCamera(){
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não liberou acesso à câmera. Abra a página por HTTPS ou localhost.');
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:true});
+  $('camera').srcObject=stream;$('recordBtn').disabled=false;
+  $('status').textContent='Câmera ativada. Confira o enquadramento antes de gravar.';
+ }catch(e){$('status').textContent='Não foi possível ativar a câmera: '+e.message+' Verifique as permissões do navegador.'}
+}
+$('cameraBtn').onclick=startCamera;
+$('switchBtn').onclick=async()=>{facing=facing==='user'?'environment':'user';await startCamera()};
+$('update').onclick=render;
+$('speed').oninput=e=>$('speedVal').textContent=e.target.value;
+$('font').oninput=e=>{$('fontVal').textContent=e.target.value+' px';$('reading').style.fontSize=e.target.value+'px'};
+$('mirror').onchange=e=>$('screen').classList.toggle('mirror',e.target.checked);
+$('playBtn').onclick=play;$('pauseBtn').onclick=pause;
+$('resetBtn').onclick=()=>{pause();$('reading').scrollTop=0};
+$('save').onclick=()=>{const key=$('title').value.trim()||'Meu roteiro';const data=JSON.parse(localStorage.getItem('fosterScripts')||'{}');data[key]=$('script').value;localStorage.setItem('fosterScripts',JSON.stringify(data));$('status').textContent='Roteiro salvo neste dispositivo.'};
+$('recordBtn').onclick=()=>{
+ if(!stream)return;
+ chunks=[];let options={};
+ if(MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus'))options.mimeType='video/webm;codecs=vp9,opus';
+ else if(MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus'))options.mimeType='video/webm;codecs=vp8,opus';
+ try{
+  recorder=new MediaRecorder(stream,options);
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=()=>{
+   const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+   if(lastUrl)URL.revokeObjectURL(lastUrl);
+   lastUrl=URL.createObjectURL(blob);$('download').href=lastUrl;$('download').style.display='inline-block';
+   $('status').textContent='Gravação finalizada. Use “Baixar vídeo gravado” para salvar no aparelho.';
+  };
+  recorder.start();$('recordBtn').disabled=true;$('stopBtn').disabled=false;
+  $('status').innerHTML='<span class="recording">● GRAVANDO</span> — a câmera está registrando áudio e vídeo.';
+ }catch(e){$('status').textContent='Falha ao iniciar gravação: '+e.message}
+};
+$('stopBtn').onclick=()=>{if(recorder&&recorder.state!=='inactive')recorder.stop();$('recordBtn').disabled=false;$('stopBtn').disabled=true;pause()};
+render();
+window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());if(lastUrl)URL.revokeObjectURL(lastUrl)});
+</script>
+</body>
+</html>
