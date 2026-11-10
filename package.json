@@ -6,7 +6,8 @@
   "description": "Foster Studio — Teleprompter e gravação · Foster Tech Soluções",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test": "node tests/robustez.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

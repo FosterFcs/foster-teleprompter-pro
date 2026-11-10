@@ -18,6 +18,14 @@ run_worker_first = ["/api/*", "/webhook"]
 binding = "PAYMENTS_KV"          # namespace TELEPROMPTER_PRO_PAYMENTS
 id = "b0f16785966147f5a30233a9e76fc98a"
 
+# Conferência automática com o Asaas, de hora em hora (minuto 7)
+[triggers]
+crons = ["7 * * * *"]
+
+# Logs no painel da Cloudflare (aba Observability)
+[observability]
+enabled = true
+
 [vars]
 ASAAS_ENV = "production"       # PRODUÇÃO desde 10/11/2026 (Sandbox testado e aprovado)
 PRICE_MONTHLY = "9.90"         # preços definidos em 09/11 — ajuste se mudar

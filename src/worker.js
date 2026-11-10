@@ -20,6 +20,13 @@
  *   sub:<subId>     → token
  *   mail:<email>    → token
  *   evt:<eventId>   → "1" (evita processar o mesmo evento duas vezes; expira em 14 dias)
+ *   rl:<rota>:<ip>  → contador do limite de tentativas
+ *   cron:cursor     → posição da conferência automática
+ *
+ * Conferência automática (cron, de hora em hora): compara cada licença com o Asaas,
+ * corrige status perdidos (pagamento, vencimento, estorno, cancelamento) e remove
+ * no Asaas as assinaturas abandonadas (nunca pagas) e as vencidas há muito tempo,
+ * para não gerar cobranças indevidas.
  */
 
 const ASAAS_URL = {
@@ -29,6 +36,11 @@ const ASAAS_URL = {
 
 const PLAN_DAYS = { monthly: 31, yearly: 366 };
 const PLAN_CYCLE = { monthly: 'MONTHLY', yearly: 'YEARLY' };
+const PAID = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'];
+const REVERSED = ['REFUNDED', 'REFUND_REQUESTED', 'REFUND_IN_PROGRESS', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE', 'AWAITING_CHARGEBACK_REVERSAL'];
+const ABANDON_DAYS = 3;   // 1ª cobrança vencida há 3 dias sem pagamento → remove a assinatura
+const EXPIRE_DAYS = 15;   // assinante sem pagar há 15 dias após o vencimento → remove a assinatura
+const CRON_BATCH = 12;    // licenças por execução (limite de subrequisições do plano grátis)
 
 export default {
   async fetch(request, env, ctx) {
@@ -51,6 +63,10 @@ export default {
       return json({ error: err.publicMessage || 'Erro interno. Tente novamente em instantes.' }, err.status || 500);
     }
   },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(reconcileBatch(env));
+  },
 };
 
 /* ---------------- Planos ---------------- */
@@ -68,6 +84,7 @@ function plans(env) {
 /* ---------------- Assinar ---------------- */
 
 async function subscribe(request, env) {
+  await rateLimit(env, request, 'sub', 6, 3600);
   const body = await readJson(request);
   const name = String(body.name || '').trim().slice(0, 120);
   const email = String(body.email || '').trim().toLowerCase().slice(0, 160);
@@ -85,6 +102,14 @@ async function subscribe(request, env) {
     const lic = await getLicense(env, existingToken);
     if (lic && lic.cpf === cpf && isActive(lic, env)) {
       return json({ token: lic.token, alreadyActive: true, license: publicLicense(lic, env) });
+    }
+    // Assinatura pendente do mesmo cliente: reaproveita a fatura em vez de abrir outra.
+    if (lic && lic.cpf === cpf && lic.status === 'pending' && lic.subscriptionActive !== false) {
+      if (lic.plan === plan && lic.invoiceUrl) {
+        return json({ token: lic.token, invoiceUrl: lic.invoiceUrl, reused: true, license: publicLicense(lic, env) });
+      }
+      // Trocou de plano: remove a assinatura antiga antes de criar a nova.
+      await removeSubscription(env, lic, 'abandoned');
     }
   }
 
@@ -139,38 +164,114 @@ async function status(request, env) {
   return json(publicLicense(lic, env));
 }
 
-/* Consulta direta ao Asaas: garante a liberação mesmo se o webhook falhar.
-   Só roda quando a licença não está ativa, no máximo 1 vez a cada 15 s. */
-async function syncFromAsaas(env, lic) {
-  if (isActive(lic, env) || !lic.subscriptionId || !env.ASAAS_API_KEY) return;
-  const now = Date.now();
-  if (lic.lastSyncAt && now - lic.lastSyncAt < 15000) return;
-  lic.lastSyncAt = now;
-  try {
-    const pays = await asaas(env, 'GET', `/subscriptions/${lic.subscriptionId}/payments?limit=12`);
-    const paid = (pays.data || []).filter(p => ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(p.status) && !p.deleted);
-    if (paid.length) {
-      for (const p of paid) {
-        const until = addDays(p.dueDate || todayBR(), PLAN_DAYS[lic.plan] || 31);
-        if (!lic.paidUntil || until > lic.paidUntil) lic.paidUntil = until;
-      }
-      if (lic.status !== 'cancelled') lic.status = 'active';
-      lic.lastEvent = 'SYNC_PAID';
-    } else {
-      const open = (pays.data || []).find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
-      if (open?.invoiceUrl) lic.invoiceUrl = open.invoiceUrl;
-      if (open?.status === 'OVERDUE') lic.status = 'overdue';
-    }
-    lic.updatedAt = new Date().toISOString();
-  } catch (e) {
-    console.error('sync Asaas falhou', e?.message);
+/* Sincronização com o Asaas (fonte da verdade).
+   - Pelo app (status/restore): só quando a licença não está ativa, no máximo 1 vez a cada 15 s.
+   - Pela conferência automática (force): sempre, confere também se a assinatura ainda existe
+     e remove assinaturas abandonadas ou vencidas há muito tempo. */
+async function syncFromAsaas(env, lic, { force = false } = {}) {
+  if (!lic.subscriptionId || !env.ASAAS_API_KEY) return false;
+  if (!force) {
+    if (isActive(lic, env)) return false;
+    if (lic.subscriptionActive === false && !lic.paidUntil) return false;
+    if (lic.lastSyncAt && Date.now() - lic.lastSyncAt < 15000) return false;
   }
+  lic.lastSyncAt = Date.now();
+  const today = todayBR();
+  try {
+    const res = await asaas(env, 'GET', `/subscriptions/${lic.subscriptionId}/payments?limit=50`);
+    const pays = (res.data || []).filter(p => !p.deleted);
+    const paid = pays.filter(p => PAID.includes(p.status));
+    const reversed = pays.filter(p => REVERSED.includes(p.status));
+    const open = pays.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE')
+      .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
+    const overdue = open.find(p => p.status === 'OVERDUE');
+
+    let until = null;
+    for (const p of paid) {
+      const u = addDays(p.dueDate || today, PLAN_DAYS[lic.plan] || 31);
+      if (!until || u > until) until = u;
+    }
+    lic.paidUntil = until;
+    if (open[0]?.invoiceUrl) lic.invoiceUrl = open[0].invoiceUrl;
+
+    if (force) {
+      const sub = await asaas(env, 'GET', `/subscriptions/${lic.subscriptionId}`);
+      if (sub.deleted || sub.status === 'INACTIVE' || sub.status === 'EXPIRED') lic.subscriptionActive = false;
+      else lic.subscriptionActive = true;
+    }
+
+    const paidValid = until && until >= today;
+    if (lic.subscriptionActive === false || lic.status === 'cancelled' || lic.status === 'expired' || lic.status === 'abandoned') {
+      lic.status = until ? (lic.status === 'expired' ? 'expired' : 'cancelled') : (lic.status === 'expired' ? 'expired' : 'abandoned');
+    } else if (overdue && !paidValid) lic.status = 'overdue';
+    else if (until) lic.status = 'active';
+    else if (reversed.length) lic.status = 'blocked';
+    else lic.status = 'pending';
+
+    // Limpeza automática (só na conferência): evita cobranças indevidas.
+    if (force && lic.subscriptionActive) {
+      if (!paid.length && overdue && daysBetween(overdue.dueDate, today) >= ABANDON_DAYS) {
+        await removeSubscription(env, lic, 'abandoned');
+      } else if (lic.status === 'overdue' && until && daysBetween(until, today) >= EXPIRE_DAYS) {
+        await removeSubscription(env, lic, 'expired');
+      } else if (lic.status === 'blocked') {
+        await removeSubscription(env, lic, 'blocked');
+      }
+    }
+  } catch (e) {
+    console.error('sync Asaas falhou', lic.subscriptionId, e?.message);
+    return false;
+  }
+  lic.updatedAt = new Date().toISOString();
   await saveLicense(env, lic);
+  return true;
+}
+
+async function removeSubscription(env, lic, newStatus) {
+  try {
+    await asaas(env, 'DELETE', `/subscriptions/${lic.subscriptionId}`);
+  } catch (e) {
+    console.error('Falha ao remover assinatura', lic.subscriptionId, e?.message);
+    return;
+  }
+  lic.subscriptionActive = false;
+  lic.status = newStatus;
+  lic.removedAt = new Date().toISOString();
+  lic.updatedAt = lic.removedAt;
+  await saveLicense(env, lic);
+  console.log('Assinatura removida no Asaas', lic.subscriptionId, newStatus);
+}
+
+/* ---------------- Conferência automática (cron) ---------------- */
+
+async function reconcileBatch(env) {
+  if (!env.ASAAS_API_KEY) return;
+  const cursor = (await env.PAYMENTS_KV.get('cron:cursor')) || undefined;
+  const page = await env.PAYMENTS_KV.list({ prefix: 'lic:', cursor, limit: 100 });
+  let checked = 0;
+  const today = todayBR();
+  for (const k of page.keys) {
+    if (checked >= CRON_BATCH) break;
+    const lic = await getLicense(env, k.name.slice(4));
+    if (!lic || !lic.subscriptionId) continue;
+    // Já encerrada e sem acesso: nada a conferir.
+    if (lic.subscriptionActive === false && (!lic.paidUntil || lic.paidUntil < today)) continue;
+    // Ativa com bastante prazo e conferida há menos de 3 dias: pula.
+    if (lic.status === 'active' && lic.paidUntil && daysBetween(today, lic.paidUntil) > 3 &&
+        lic.lastSyncAt && Date.now() - lic.lastSyncAt < 3 * 86400000) continue;
+    await syncFromAsaas(env, lic, { force: true });
+    checked++;
+  }
+  // Guarda onde parou; quando chega ao fim, recomeça do início.
+  if (page.list_complete && checked < CRON_BATCH) await env.PAYMENTS_KV.delete('cron:cursor');
+  else if (!page.list_complete) await env.PAYMENTS_KV.put('cron:cursor', page.cursor);
+  console.log(`Conferência automática: ${checked} licença(s) verificada(s).`);
 }
 
 /* ---------------- Recuperar acesso ---------------- */
 
 async function restore(request, env) {
+  await rateLimit(env, request, 'restore', 10, 3600);
   const body = await readJson(request);
   const email = String(body.email || '').trim().toLowerCase();
   const cpf = onlyDigits(body.cpf);
@@ -226,7 +327,8 @@ async function webhook(request, env) {
       case 'SUBSCRIPTION_DELETED':
       case 'SUBSCRIPTION_INACTIVATED':
         // Cancelada: mantém o acesso até o fim do período já pago.
-        lic.status = 'cancelled';
+        lic.status = lic.paidUntil ? 'cancelled' : 'abandoned';
+        lic.subscriptionActive = false;
         break;
       default:
         break;
@@ -244,7 +346,7 @@ async function webhook(request, env) {
 
 function isActive(lic, env) {
   if (!lic.paidUntil) return false;
-  if (lic.status === 'blocked' || lic.status === 'overdue') return false;
+  if (lic.status === 'blocked' || lic.status === 'overdue' || lic.status === 'abandoned') return false;
   const grace = Number(env.GRACE_DAYS || 0);
   return addDays(lic.paidUntil, grace) >= todayBR();
 }
@@ -339,6 +441,17 @@ function todayBR() {
 function addDays(ymd, days) {
   const d = new Date(ymd + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+function daysBetween(fromYmd, toYmd) {
+  return Math.round((new Date(toYmd + 'T12:00:00Z') - new Date(fromYmd + 'T12:00:00Z')) / 86400000);
+}
+async function rateLimit(env, request, bucket, limit, windowSec) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'local';
+  const win = Math.floor(Date.now() / 1000 / windowSec);
+  const key = `rl:${bucket}:${ip}:${win}`;
+  const n = Number((await env.PAYMENTS_KV.get(key)) || 0);
+  if (n >= limit) throw publicError('Muitas tentativas. Aguarde alguns minutos e tente novamente.', 429);
+  await env.PAYMENTS_KV.put(key, String(n + 1), { expirationTtl: Math.max(60, windowSec * 2) });
 }
 function maskEmail(e) {
   const [u, d] = e.split('@'); return `${u.slice(0, 2)}***@${d}`;

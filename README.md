@@ -66,6 +66,15 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
 - Assinatura cancelada → mantém até o fim do período já pago.
 - O app guarda a licença no aparelho e confere no servidor sempre que abre.
 
+## Robustez
+- **Conferência automática (de hora em hora):** cada licença é comparada com o Asaas. Corrige pagamentos, vencimentos, estornos e cancelamentos que o webhook não avisou.
+- **Limpeza de cobranças:** assinaturas nunca pagas são removidas no Asaas 3 dias após o vencimento; inadimplentes, 15 dias após o fim do período pago; estornadas, na hora. Assim ninguém recebe cobrança indevida.
+- **Reaproveitamento:** se a mesma pessoa clicar em "Assinar" de novo, recebe a mesma fatura, sem abrir outra assinatura.
+- **Limite de tentativas:** 6 assinaturas e 10 recuperações de acesso por hora, por conexão.
+- **Liberação dupla:** o PRO é liberado pelo webhook ou pela consulta direta ao Asaas (botão "Já paguei").
+- **Logs:** aba Observability do Worker na Cloudflare.
+- **Testes:** `npm test` roda os cenários de pagamento, cancelamento, estorno, inadimplência e limites.
+
 ## Limitações conhecidas desta versão
 - A recuperação de acesso usa e-mail + CPF (sem código por e-mail). Para a versão pública, o ideal é um código de confirmação enviado por e-mail.
 - As travas do plano grátis ficam no navegador: impedem o uso comum, mas não alguém com conhecimento técnico.
