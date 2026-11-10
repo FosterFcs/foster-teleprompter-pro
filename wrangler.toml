@@ -1,26 +1,25 @@
 # Foster Studio — Teleprompter e gravação · Foster Tech Soluções
 #
-# ATENÇÃO: o nome abaixo é de um Worker NOVO, de teste (sandbox).
-# Assim o endereço que já está no ar (foster-teleprompter-pro.*.workers.dev)
-# continua intacto até aprovarmos a V0.3.
-name = "foster-studio-sandbox"
+# Worker de TESTE (sandbox) criado em 09/11 — já tem os segredos
+# ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN cadastrados no painel.
+# O endereço público foster-teleprompter-pro.*.workers.dev (V0.2) não é alterado.
+name = "frostfoster-teleprompter-api-sandboxy-rice-c068"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 
 [assets]
 directory = "./public"
 binding = "ASSETS"
-run_worker_first = ["/api/*"]
+run_worker_first = ["/api/*", "/webhook"]
 
 [[kv_namespaces]]
-binding = "SUBS"
-# Crie com:  npx wrangler kv namespace create SUBS   e cole o id aqui
-id = "COLE_AQUI_O_ID_DO_KV"
+binding = "PAYMENTS_KV"          # namespace TELEPROMPTER_PRO_PAYMENTS
+id = "b0f16785966147f5a30233a9e76fc98a"
 
 [vars]
 ASAAS_ENV = "sandbox"          # mude para "production" só depois dos testes
-PRICE_MONTHLY = "19.90"        # valores de TESTE — defina os preços finais
-PRICE_YEARLY = "179.90"
+PRICE_MONTHLY = "9.90"         # preços definidos em 09/11 — ajuste se mudar
+PRICE_YEARLY = "79.90"
 GRACE_DAYS = "3"               # dias de tolerância após o vencimento
 
 # Segredos (NUNCA coloque aqui):

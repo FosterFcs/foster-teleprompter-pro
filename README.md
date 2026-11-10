@@ -4,7 +4,7 @@
 
 Teleprompter com prévia de câmera, gravação local e plano PRO por assinatura (Asaas), rodando em um Worker da Cloudflare.
 
-> A V0.2 continua intacta na branch `main` (e no `re.zip`). Esta versão usa um Worker **novo** (`foster-studio-sandbox`), então o endereço que já está no ar não é alterado.
+> A V0.2 continua intacta na branch `main` (e no `re.zip`). Esta versão é publicada no Worker de teste `frostfoster-teleprompter-api-sandboxy-rice-c068` (criado em 09/11, com KV `TELEPROMPTER_PRO_PAYMENTS` e segredos já cadastrados). O endereço público da V0.2 não é alterado.
 
 ## Estrutura
 ```
@@ -42,7 +42,7 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
    ```
 5. **Publicar**: `npx wrangler deploy` → gera `https://foster-studio-sandbox.<conta>.workers.dev`
 6. **Webhook no Asaas Sandbox**: *Integrações → Webhooks → Criar*
-   - URL: `https://foster-studio-sandbox.<conta>.workers.dev/api/webhook/asaas`
+   - URL: `https://frostfoster-teleprompter-api-sandboxy-rice-c068.<conta>.workers.dev/webhook`
    - Token de autenticação: o mesmo `ASAAS_WEBHOOK_TOKEN`
    - Eventos: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_REFUNDED`, `SUBSCRIPTION_DELETED`, `SUBSCRIPTION_INACTIVATED`
 

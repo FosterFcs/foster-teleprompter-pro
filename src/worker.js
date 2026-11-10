@@ -8,11 +8,12 @@
  *   GET  /api/status              → status da licença (Authorization: Bearer <token>)
  *   POST /api/restore             → recupera a licença em outro aparelho (e-mail + CPF)
  *   POST /api/webhook/asaas       → recebe eventos do Asaas (valida header asaas-access-token)
+ *   POST /webhook                 → mesmo webhook (endereço já cadastrado no Asaas Sandbox)
  *   Demais caminhos               → arquivos estáticos da pasta /public
  *
  * Segredos (wrangler secret put):  ASAAS_API_KEY, ASAAS_WEBHOOK_TOKEN
  * Variáveis (wrangler.toml):        ASAAS_ENV, PRICE_MONTHLY, PRICE_YEARLY, GRACE_DAYS
- * KV:                               SUBS
+ * KV:                               PAYMENTS_KV (namespace TELEPROMPTER_PRO_PAYMENTS)
  *
  * Chaves no KV:
  *   lic:<token>     → { token, name, email, cpf, plan, customerId, subscriptionId, status, paidUntil, invoiceUrl, updatedAt }
@@ -32,6 +33,7 @@ const PLAN_CYCLE = { monthly: 'MONTHLY', yearly: 'YEARLY' };
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === '/webhook' && request.method === 'POST') return await webhook(request, env).catch(e => json({ error: 'Erro interno.' }, 500));
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
     try {
@@ -78,7 +80,7 @@ async function subscribe(request, env) {
   if (!PLAN_CYCLE[plan]) throw publicError('Plano inválido.');
 
   // Se já existe licença ativa para este e-mail, não cria outra cobrança.
-  const existingToken = await env.SUBS.get(`mail:${email}`);
+  const existingToken = await env.PAYMENTS_KV.get(`mail:${email}`);
   if (existingToken) {
     const lic = await getLicense(env, existingToken);
     if (lic && lic.cpf === cpf && isActive(lic, env)) {
@@ -119,8 +121,8 @@ async function subscribe(request, env) {
     invoiceUrl, updatedAt: new Date().toISOString(),
   };
   await saveLicense(env, lic);
-  await env.SUBS.put(`sub:${sub.id}`, token);
-  await env.SUBS.put(`mail:${email}`, token);
+  await env.PAYMENTS_KV.put(`sub:${sub.id}`, token);
+  await env.PAYMENTS_KV.put(`mail:${email}`, token);
 
   return json({ token, invoiceUrl, license: publicLicense(lic, env) });
 }
@@ -141,7 +143,7 @@ async function restore(request, env) {
   const body = await readJson(request);
   const email = String(body.email || '').trim().toLowerCase();
   const cpf = onlyDigits(body.cpf);
-  const token = email ? await env.SUBS.get(`mail:${email}`) : null;
+  const token = email ? await env.PAYMENTS_KV.get(`mail:${email}`) : null;
   const lic = token ? await getLicense(env, token) : null;
   // Mesma resposta para "não existe" e "CPF não confere", para não revelar cadastros.
   if (!lic || lic.cpf !== cpf) throw publicError('Não encontramos assinatura com esses dados.', 404);
@@ -158,11 +160,11 @@ async function webhook(request, env) {
 
   const evt = await readJson(request);
   if (evt.id) {
-    if (await env.SUBS.get(`evt:${evt.id}`)) return json({ received: true, duplicate: true });
+    if (await env.PAYMENTS_KV.get(`evt:${evt.id}`)) return json({ received: true, duplicate: true });
   }
 
   const subId = evt.payment?.subscription || evt.subscription?.id;
-  const token = subId ? await env.SUBS.get(`sub:${subId}`) : null;
+  const token = subId ? await env.PAYMENTS_KV.get(`sub:${subId}`) : null;
   const lic = token ? await getLicense(env, token) : null;
 
   if (lic) {
@@ -202,7 +204,7 @@ async function webhook(request, env) {
     await saveLicense(env, lic);
   }
 
-  if (evt.id) await env.SUBS.put(`evt:${evt.id}`, '1', { expirationTtl: 60 * 60 * 24 * 14 });
+  if (evt.id) await env.PAYMENTS_KV.put(`evt:${evt.id}`, '1', { expirationTtl: 60 * 60 * 24 * 14 });
   return json({ received: true });
 }
 
@@ -253,10 +255,10 @@ async function asaas(env, method, path, body) {
 /* ---------------- KV ---------------- */
 
 async function getLicense(env, token) {
-  return env.SUBS.get(`lic:${token}`, 'json');
+  return env.PAYMENTS_KV.get(`lic:${token}`, 'json');
 }
 async function saveLicense(env, lic) {
-  await env.SUBS.put(`lic:${lic.token}`, JSON.stringify(lic));
+  await env.PAYMENTS_KV.put(`lic:${lic.token}`, JSON.stringify(lic));
 }
 
 /* ---------------- Utilitários ---------------- */
