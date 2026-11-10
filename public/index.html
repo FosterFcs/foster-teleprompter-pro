@@ -44,23 +44,28 @@ body.is-pro .lock{display:none}
 .scripts li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .scripts li button{padding:4px 8px;font-size:11px;background:#2b2e35}
 .empty{font-size:12px;color:var(--muted)}
-.stage{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.cameraWrap,.screen{background:#060708;border:1px solid #2f3238;border-radius:13px;overflow:hidden;min-height:340px;position:relative}
-video{width:100%;height:100%;min-height:340px;object-fit:cover;display:block;background:#050505}
+.stage{--stageH:400px;--guide:calc(var(--stageH)*.34);position:relative;display:grid;grid-template-columns:1.25fr 1fr;gap:12px;height:var(--stageH)}
+.cameraWrap,.screen{background:#060708;border:1px solid #2f3238;border-radius:14px;overflow:hidden;position:relative;height:100%;min-height:0}
+video{width:100%;height:100%;object-fit:cover;display:block;background:#050505}
 .cameraWrap.front video{transform:scaleX(-1)}
-.camLabel{position:absolute;top:10px;left:10px;background:#000b;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700}
-.rec{position:absolute;top:10px;right:10px;background:#000b;padding:5px 9px;border-radius:7px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;display:none}
+.camLabel{position:absolute;top:10px;left:10px;background:#000b;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700;z-index:2}
+.rec{position:absolute;top:10px;right:10px;background:#000b;padding:5px 9px;border-radius:7px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;display:none;z-index:2}
 .rec.on{display:block;color:#ff6b72}.rec.on::before{content:"● ";animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.2}}
-.count{position:absolute;inset:0;display:none;place-items:center;font-size:110px;font-weight:900;background:#000a;z-index:5}
+.count{position:absolute;inset:0;display:none;place-items:center;font-size:120px;font-weight:900;background:#000b;z-index:8;border-radius:14px}
 .count.on{display:grid}
-.reading{height:340px;overflow:auto;padding:150px 8% 170px;font-size:30px;line-height:1.55;text-align:center;white-space:pre-wrap;scrollbar-width:thin}
+.screen{--guide:calc(var(--stageH)*.34)}
+.reading{height:100%;overflow:auto;box-sizing:border-box;padding:calc(var(--guide) - .78em) 7% calc(var(--stageH) - var(--guide));font-size:30px;line-height:1.56;text-align:center;white-space:pre-wrap;scrollbar-width:none;
+ -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.55) calc(var(--guide) - 1.6em),#000 calc(var(--guide) - .9em),#000 calc(var(--guide) + 2.6em),rgba(0,0,0,.35) 100%);
+ mask-image:linear-gradient(to bottom,rgba(0,0,0,.18) 0,rgba(0,0,0,.55) calc(var(--guide) - 1.6em),#000 calc(var(--guide) - .9em),#000 calc(var(--guide) + 2.6em),rgba(0,0,0,.35) 100%)}
+.reading::-webkit-scrollbar{display:none}
 .screen.mirror .reading{transform:scaleX(-1)}
-.guide{position:absolute;left:0;right:0;top:42%;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);pointer-events:none;opacity:.8;display:none}
+.guide{position:absolute;left:0;right:0;top:calc(var(--guide) - .78em);height:1.56em;font-size:30px;pointer-events:none;display:none;background:linear-gradient(90deg,transparent,#e1262f1f 15%,#e1262f1f 85%,transparent);border-top:1px solid #e1262f55;border-bottom:1px solid #e1262f55}
+.guide::before,.guide::after{content:"";position:absolute;top:50%;transform:translateY(-50%);border:8px solid transparent}
+.guide::before{left:4px;border-left-color:var(--red)}.guide::after{right:4px;border-right-color:var(--red)}
 .screen.withGuide .guide{display:block}
-.screen:fullscreen{border-radius:0;border:0}
-.screen:fullscreen .reading{height:100vh;padding:45vh 10% 55vh}
-.fsBtn{position:absolute;bottom:10px;right:10px;padding:6px 10px;font-size:11px;background:#000b;z-index:3}
+.screen:fullscreen{--stageH:100vh;border-radius:0;border:0}
+.fsBtn{position:absolute;top:10px;right:10px;padding:6px 10px;font-size:11px;background:#000c;z-index:3;border:1px solid #ffffff22}
 .controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
 .status{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5;min-height:20px}
 .status .recording{color:#ff6b72;font-weight:800}
@@ -101,8 +106,11 @@ body.is-pro #plans,body.is-pro #subForm,body.is-pro #subMsg,body.is-pro #restore
 .terms input{margin-top:2px}
 details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 summary{cursor:pointer;font-size:13px;color:#ccc}
-@media(max-width:900px){main{grid-template-columns:1fr;padding:10px}.stage{grid-template-columns:1fr}.screen{order:-1}.plans{grid-template-columns:1fr}.form{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,1fr)}
-.cameraWrap,.screen{min-height:260px}video{min-height:260px}.reading{height:300px;font-size:28px;padding:130px 6% 150px}}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:10px}.stage{--stageH:62vh;display:block}.screen{height:100%}
+.cameraWrap{position:absolute;right:8px;top:8px;width:26%;height:auto;aspect-ratio:3/4;z-index:5;border:2px solid #ffffff30;box-shadow:0 6px 20px #000c}.fsBtn{top:auto;bottom:10px}
+.cameraWrap .camLabel{display:none}.cameraWrap .rec{font-size:10px;top:auto;bottom:5px;right:5px;padding:3px 6px}
+main>section.studio{order:-1}.brand small{display:none}.plans{grid-template-columns:1fr}.form{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,1fr)}
+.reading{padding-left:5%;padding-right:5%}}
 </style>
 </head>
 <body>
@@ -135,11 +143,12 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
  <p class="hint" style="margin-top:14px">Atalhos: <b>Espaço</b> inicia/pausa · <b>R</b> reinicia · <b>↑/↓</b> velocidade.</p>
 </section>
 
-<section class="panel">
+<section class="panel studio">
  <h2>Estúdio de gravação <span class="hint" id="limitInfo"></span></h2>
  <div class="stage">
-  <div class="cameraWrap front" id="camWrap"><video id="camera" autoplay muted playsinline></video><div class="camLabel" id="camLabel">PRÉVIA DA CÂMERA</div><div class="rec" id="recTimer">00:00</div><div class="count" id="count">3</div></div>
-  <div class="screen withGuide" id="screen"><div class="reading" id="reading"></div><div class="guide"></div><button class="fsBtn" id="fsBtn">⛶ Tela cheia</button></div>
+  <div class="screen withGuide" id="screen"><div class="reading" id="reading"></div><div class="guide" id="guideBand"></div><button class="fsBtn" id="fsBtn">⛶ Tela cheia</button></div>
+  <div class="cameraWrap front" id="camWrap"><video id="camera" autoplay muted playsinline></video><div class="camLabel" id="camLabel">PRÉVIA DA CÂMERA</div><div class="rec" id="recTimer">00:00</div></div>
+  <div class="count" id="count">3</div>
  </div>
  <div class="controls">
   <button id="cameraBtn" class="primary">Ativar câmera</button><button id="switchBtn">Trocar câmera</button>
@@ -374,7 +383,8 @@ $('update').onclick=render;
 $('newScript').onclick=()=>{$('title').value='Novo roteiro';$('script').value='';render();$('script').focus()};
 $('save').onclick=saveScript;
 $('speed').oninput=e=>{$('speedVal').textContent=e.target.value;savePrefs()};
-$('font').oninput=e=>{$('fontVal').textContent=e.target.value+' px';$('reading').style.fontSize=e.target.value+'px';savePrefs()};
+$('font').oninput=e=>{$('fontVal').textContent=e.target.value+' px';setFont(e.target.value);savePrefs()};
+function setFont(v){$('reading').style.fontSize=v+'px';$('guideBand').style.fontSize=v+'px'}
 $('mirror').onchange=e=>{$('screen').classList.toggle('mirror',e.target.checked);savePrefs()};
 $('guide').onchange=e=>{$('screen').classList.toggle('withGuide',e.target.checked);savePrefs()};
 $('countdown').onchange=e=>{if(e.target.checked&&!isPro){e.target.checked=false;openModal()}};
@@ -396,7 +406,7 @@ document.addEventListener('keydown',e=>{
  if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();const s=$('speed');s.value=Math.max(1,Math.min(10,Number(s.value)+(e.key==='ArrowUp'?1:-1)));s.oninput({target:s})}
 });
 function savePrefs(){store.set(LS.prefs,{speed:$('speed').value,font:$('font').value,mirror:$('mirror').checked,guide:$('guide').checked})}
-function loadPrefs(){const p=store.get(LS.prefs,null);if(!p)return;$('speed').value=p.speed;$('speedVal').textContent=p.speed;$('font').value=p.font;$('fontVal').textContent=p.font+' px';$('reading').style.fontSize=p.font+'px';$('mirror').checked=p.mirror;$('screen').classList.toggle('mirror',p.mirror);$('guide').checked=p.guide;$('screen').classList.toggle('withGuide',p.guide)}
+function loadPrefs(){const p=store.get(LS.prefs,null);if(!p)return;$('speed').value=p.speed;$('speedVal').textContent=p.speed;$('font').value=p.font;$('fontVal').textContent=p.font+' px';setFont(p.font);$('mirror').checked=p.mirror;$('screen').classList.toggle('mirror',p.mirror);$('guide').checked=p.guide;$('screen').classList.toggle('withGuide',p.guide)}
 window.addEventListener('beforeunload',e=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
 
 render();loadPrefs();applyPlan(null);refreshLicense();
