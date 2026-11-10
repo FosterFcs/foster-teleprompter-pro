@@ -29,6 +29,8 @@
  * para não gerar cobranças indevidas.
  */
 
+const OFFICIAL_URL = 'https://foster-studio.fosterconstrutora.workers.dev';
+
 const ASAAS_URL = {
   sandbox: 'https://api-sandbox.asaas.com/v3',
   production: 'https://api.asaas.com/v3',
@@ -45,6 +47,10 @@ const CRON_BATCH = 12;    // licenças por execução (limite de subrequisiçõe
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // Endereço antigo (V0.2) → endereço oficial do Foster Studio
+    if (url.hostname.startsWith('foster-teleprompter-pro.')) {
+      return Response.redirect(OFFICIAL_URL + url.pathname + url.search, 301);
+    }
     if (url.pathname === '/webhook' && request.method === 'POST') return await webhook(request, env).catch(e => json({ error: 'Erro interno.' }, 500));
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
     if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
@@ -65,6 +71,7 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
+    if (env.WORKER_ROLE === 'legacy') return;
     ctx.waitUntil(reconcileBatch(env));
   },
 };
