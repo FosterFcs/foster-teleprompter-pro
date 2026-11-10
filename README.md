@@ -3,7 +3,7 @@
 
 Teleprompter com prévia de câmera, gravação local e plano PRO por assinatura (Asaas), rodando em um Worker da Cloudflare.
 
-> A V0.2 está preservada na tag `v0.2-backup` e na branch `main`. Esta versão usa um Worker **novo** (`foster-teleprompter-pro-sandbox`), então o endereço que já está no ar não é alterado.
+> A V0.2 continua intacta na branch `main` (e no `re.zip`). Esta versão usa um Worker **novo** (`foster-teleprompter-pro-sandbox`), então o endereço que já está no ar não é alterado.
 
 ## Estrutura
 ```
