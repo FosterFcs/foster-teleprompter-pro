@@ -1,5 +1,5 @@
 /**
- * Foster Teleprompter PRO — Worker Cloudflare
+ * Foster Studio (teleprompter e gravação) — Worker Cloudflare
  * Foster Tech Soluções · Wilson Foster
  *
  * Rotas:
@@ -105,7 +105,7 @@ async function subscribe(request, env) {
     value,
     nextDueDate: todayBR(),
     cycle: PLAN_CYCLE[plan],
-    description: `Foster Teleprompter PRO — ${plan === 'monthly' ? 'Mensal' : 'Anual'}`,
+    description: `Foster Studio PRO — ${plan === 'monthly' ? 'Mensal' : 'Anual'}`,
     externalReference: `ftp:${token.slice(0, 16)}`,
   });
 
@@ -236,7 +236,7 @@ async function asaas(env, method, path, body) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'User-Agent': 'FosterTeleprompterPRO/0.3',
+      'User-Agent': 'FosterStudio/0.3',
       access_token: env.ASAAS_API_KEY,
     },
     body: body ? JSON.stringify(body) : undefined,

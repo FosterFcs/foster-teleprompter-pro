@@ -1,9 +1,9 @@
-# Foster Teleprompter PRO — Foster Tech Soluções
+# Foster Studio — Teleprompter e gravação · Foster Tech Soluções
 #
 # ATENÇÃO: o nome abaixo é de um Worker NOVO, de teste (sandbox).
 # Assim o endereço que já está no ar (foster-teleprompter-pro.*.workers.dev)
 # continua intacto até aprovarmos a V0.3.
-name = "foster-teleprompter-pro-sandbox"
+name = "foster-studio-sandbox"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 

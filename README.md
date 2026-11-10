@@ -1,9 +1,10 @@
-# Foster Teleprompter PRO — V0.3 (comercial)
+# Foster Studio — Teleprompter e gravação · V0.3 (comercial)
+*(antigo Foster Teleprompter PRO)*
 **Apresente suas ideias com profissionalismo.** · Um produto Foster Tech Soluções
 
 Teleprompter com prévia de câmera, gravação local e plano PRO por assinatura (Asaas), rodando em um Worker da Cloudflare.
 
-> A V0.2 continua intacta na branch `main` (e no `re.zip`). Esta versão usa um Worker **novo** (`foster-teleprompter-pro-sandbox`), então o endereço que já está no ar não é alterado.
+> A V0.2 continua intacta na branch `main` (e no `re.zip`). Esta versão usa um Worker **novo** (`foster-studio-sandbox`), então o endereço que já está no ar não é alterado.
 
 ## Estrutura
 ```
@@ -39,9 +40,9 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
    npx wrangler secret put ASAAS_API_KEY        # chave do Sandbox ($aact_...)
    npx wrangler secret put ASAAS_WEBHOOK_TOKEN  # texto aleatório de 32+ caracteres
    ```
-5. **Publicar**: `npx wrangler deploy` → gera `https://foster-teleprompter-pro-sandbox.<conta>.workers.dev`
+5. **Publicar**: `npx wrangler deploy` → gera `https://foster-studio-sandbox.<conta>.workers.dev`
 6. **Webhook no Asaas Sandbox**: *Integrações → Webhooks → Criar*
-   - URL: `https://foster-teleprompter-pro-sandbox.<conta>.workers.dev/api/webhook/asaas`
+   - URL: `https://foster-studio-sandbox.<conta>.workers.dev/api/webhook/asaas`
    - Token de autenticação: o mesmo `ASAAS_WEBHOOK_TOKEN`
    - Eventos: `PAYMENT_CREATED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_OVERDUE`, `PAYMENT_REFUNDED`, `SUBSCRIPTION_DELETED`, `SUBSCRIPTION_INACTIVATED`
 
@@ -57,7 +58,7 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
 - Trocar `ASAAS_ENV = "production"`, gravar a chave de produção em `ASAAS_API_KEY` e definir os preços finais (`PRICE_MONTHLY`, `PRICE_YEARLY`).
 - Criar o webhook também na conta de produção (Sandbox e produção são configurados separadamente).
 - Fazer uma cobrança real controlada antes de divulgar.
-- Quando aprovado, trocar `name` no `wrangler.toml` para `foster-teleprompter-pro` para substituir o endereço atual.
+- Quando aprovado, trocar `name` no `wrangler.toml` para `foster-studio` (endereço definitivo) e desativar o Worker antigo `foster-teleprompter-pro` — ou apontar um domínio próprio, ex.: studio.engfoster.com.br.
 
 ## Regras de acesso
 - Pagamento confirmado/recebido → PRO até o vencimento + 31 dias (mensal) ou 366 dias (anual), com tolerância de `GRACE_DAYS`.

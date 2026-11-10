@@ -1,9 +1,9 @@
 {
-  "name": "foster-teleprompter-pro",
+  "name": "foster-studio",
   "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Foster Teleprompter PRO — Foster Tech Soluções",
+  "description": "Foster Studio — Teleprompter e gravação · Foster Tech Soluções",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"

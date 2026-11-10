@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101114">
-<meta name="description" content="Foster Teleprompter PRO — apresente suas ideias com profissionalismo. Teleprompter com câmera e gravação direto no navegador.">
-<title>Foster Teleprompter PRO | Foster Tech Soluções</title>
+<meta name="description" content="Foster Studio — teleprompter e gravação. Apresente suas ideias com profissionalismo. Teleprompter com câmera e gravação direto no navegador.">
+<title>Foster Studio — Teleprompter e gravação | Foster Tech Soluções</title>
 <style>
 :root{--red:#e1262f;--red2:#ff4b53;--bg:#0d0e11;--panel:#17191e;--panel2:#1f2228;--line:#2c2f36;--muted:#9a9ea8;--white:#f5f5f6;--ok:#3ccf7a;--warn:#f2b33d}
 *{box-sizing:border-box}
@@ -101,7 +101,7 @@ summary{cursor:pointer;font-size:13px;color:#ccc}
 </head>
 <body>
 <header>
- <div class="brand"><div class="logo"><b>‹</b>F<b>›</b></div><div><span>FOSTER</span> TELEPROMPTER PRO<small>Apresente suas ideias com profissionalismo.</small></div></div>
+ <div class="brand"><div class="logo"><b>‹</b>F<b>›</b></div><div><span>FOSTER</span> STUDIO<small>Teleprompter e gravação · Apresente suas ideias com profissionalismo.</small></div></div>
  <div class="hdr"><span class="badge" id="planBadge">GRÁTIS</span><button class="primary" id="goPro">Seja PRO</button></div>
 </header>
 
@@ -110,7 +110,7 @@ summary{cursor:pointer;font-size:13px;color:#ccc}
  <h2>Roteiro</h2>
  <label for="title">Nome do roteiro</label><input id="title" value="Meu roteiro" maxlength="60">
  <label for="script">Texto para leitura</label>
- <textarea id="script">Olá! Seja bem-vindo ao Foster Teleprompter PRO.
+ <textarea id="script">Olá! Seja bem-vindo ao Foster Studio.
 
 Aqui você acompanha seu roteiro enquanto grava com a câmera do celular ou do computador.
 
@@ -155,7 +155,7 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
 </div>
 
 <footer>
- Foster Teleprompter PRO · um produto <b>Foster Tech Soluções</b><br>
+ Foster Studio · Teleprompter e gravação · um produto <b>Foster Tech Soluções</b><br>
  Wilson Foster · Engenheiro Civil · CREA/SP<br>
  <a href="#" id="openRestore">Já sou assinante — recuperar acesso</a>
 </footer>
@@ -259,7 +259,7 @@ function stopRecording(byLimit){
 function finishTake(){
  const type=recorder.mimeType||'video/webm',ext=type.includes('mp4')?'mp4':'webm';
  const blob=new Blob(chunks,{type}),url=URL.createObjectURL(blob),dur=(Date.now()-recStart)/1000;
- const name=($('title').value.trim()||'foster-teleprompter').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.'+ext;
+ const name=($('title').value.trim()||'foster-studio').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.'+ext;
  if(!isPro){takes.forEach(t=>URL.revokeObjectURL(t.url));takes=[]}
  takes.unshift({url,name,dur,size:blob.size});renderTakes();
  setStatus(recorder._byLimit?'Limite de 1 minuto do plano grátis atingido. Seja PRO para gravar sem limite.':'Gravação finalizada. Toque em "Baixar" para salvar no aparelho.');
