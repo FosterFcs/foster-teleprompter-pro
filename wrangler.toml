@@ -1,0 +1,28 @@
+# Foster Teleprompter PRO — Foster Tech Soluções
+#
+# ATENÇÃO: o nome abaixo é de um Worker NOVO, de teste (sandbox).
+# Assim o endereço que já está no ar (foster-teleprompter-pro.*.workers.dev)
+# continua intacto até aprovarmos a V0.3.
+name = "foster-teleprompter-pro-sandbox"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[kv_namespaces]]
+binding = "SUBS"
+# Crie com:  npx wrangler kv namespace create SUBS   e cole o id aqui
+id = "COLE_AQUI_O_ID_DO_KV"
+
+[vars]
+ASAAS_ENV = "sandbox"          # mude para "production" só depois dos testes
+PRICE_MONTHLY = "19.90"        # valores de TESTE — defina os preços finais
+PRICE_YEARLY = "179.90"
+GRACE_DAYS = "3"               # dias de tolerância após o vencimento
+
+# Segredos (NUNCA coloque aqui):
+#   npx wrangler secret put ASAAS_API_KEY
+#   npx wrangler secret put ASAAS_WEBHOOK_TOKEN

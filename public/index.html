@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101114">
+<meta name="description" content="Foster Teleprompter PRO — apresente suas ideias com profissionalismo. Teleprompter com câmera e gravação direto no navegador.">
+<title>Foster Teleprompter PRO | Foster Tech Soluções</title>
+<style>
+:root{--red:#e1262f;--red2:#ff4b53;--bg:#0d0e11;--panel:#17191e;--panel2:#1f2228;--line:#2c2f36;--muted:#9a9ea8;--white:#f5f5f6;--ok:#3ccf7a;--warn:#f2b33d}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--white);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--red2)}
+header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#0f1013;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:1px}
+.logo{width:36px;height:36px;border-radius:9px;background:#000;display:flex;align-items:center;justify-content:center;gap:1px;font-size:13px;white-space:nowrap;border:1px solid #2a2a2a;flex:none}
+.logo b{color:var(--red)}.brand span{color:var(--red)}
+.brand small{display:block;font-weight:500;letter-spacing:0;color:var(--muted);font-size:11px;margin-top:2px}
+.hdr{display:flex;align-items:center;gap:8px}
+.badge{font-size:11px;font-weight:800;border-radius:20px;padding:5px 10px;border:1px solid #454750;color:#ddd;letter-spacing:.5px}
+.badge.pro{background:linear-gradient(90deg,#e1262f,#ff6a3d);border-color:transparent;color:#fff}
+.badge.pending{border-color:var(--warn);color:var(--warn)}
+main{max-width:1240px;margin:auto;padding:16px;display:grid;grid-template-columns:340px 1fr;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+h3{font-size:13px;margin:18px 0 8px;color:#ddd}
+label{display:block;color:var(--muted);font-size:12px;margin:11px 0 6px}
+input,textarea,select{width:100%;background:#0f1114;color:#fff;border:1px solid #3a3d45;border-radius:10px;padding:10px;font:inherit}
+input:focus,textarea:focus{outline:2px solid #e1262f55;border-color:var(--red)}
+input[type=range]{padding:0;accent-color:var(--red)}
+input[type=checkbox]{width:auto;accent-color:var(--red)}
+textarea{height:170px;resize:vertical;line-height:1.5}
+button{background:#30333b;color:#fff;border:0;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer;font:inherit;font-weight:700}
+button:hover:not(:disabled){filter:brightness(1.15)}
+button.primary{background:var(--red)}button.ghost{background:transparent;border:1px solid #454750}
+button:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.check{display:flex;justify-content:space-between;align-items:center;color:#ccc;font-size:13px;margin:12px 0 0}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions>button{flex:1}
+.lock{font-size:10px;background:#2a2c33;color:#ffb3b6;border-radius:6px;padding:2px 6px;margin-left:6px;font-weight:800;letter-spacing:.4px}
+body.is-pro .lock{display:none}
+.scripts{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.scripts li{display:flex;align-items:center;gap:6px;background:var(--panel2);border-radius:9px;padding:7px 8px;font-size:13px}
+.scripts li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.scripts li button{padding:4px 8px;font-size:11px;background:#2b2e35}
+.empty{font-size:12px;color:var(--muted)}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cameraWrap,.screen{background:#060708;border:1px solid #2f3238;border-radius:13px;overflow:hidden;min-height:340px;position:relative}
+video{width:100%;height:100%;min-height:340px;object-fit:cover;display:block;background:#050505}
+.cameraWrap.front video{transform:scaleX(-1)}
+.camLabel{position:absolute;top:10px;left:10px;background:#000b;padding:5px 8px;border-radius:7px;font-size:11px;font-weight:700}
+.rec{position:absolute;top:10px;right:10px;background:#000b;padding:5px 9px;border-radius:7px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;display:none}
+.rec.on{display:block;color:#ff6b72}.rec.on::before{content:"● ";animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+.count{position:absolute;inset:0;display:none;place-items:center;font-size:110px;font-weight:900;background:#000a;z-index:5}
+.count.on{display:grid}
+.reading{height:340px;overflow:auto;padding:150px 8% 170px;font-size:30px;line-height:1.55;text-align:center;white-space:pre-wrap;scrollbar-width:thin}
+.screen.mirror .reading{transform:scaleX(-1)}
+.guide{position:absolute;left:0;right:0;top:42%;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);pointer-events:none;opacity:.8;display:none}
+.screen.withGuide .guide{display:block}
+.screen:fullscreen{border-radius:0;border:0}
+.screen:fullscreen .reading{height:100vh;padding:45vh 10% 55vh}
+.fsBtn{position:absolute;bottom:10px;right:10px;padding:6px 10px;font-size:11px;background:#000b;z-index:3}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.status{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5;min-height:20px}
+.status .recording{color:#ff6b72;font-weight:800}
+.takes{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:8px}
+.take{background:var(--panel2);border-radius:11px;overflow:hidden;font-size:12px}
+.take video{min-height:0;height:110px;object-fit:cover}
+.take div{padding:8px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.take a{font-weight:800;text-decoration:none}
+.hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+.adFoster{margin:0 16px 16px;max-width:1208px;margin-inline:auto;background:linear-gradient(90deg,#1a1215,#17191e);border:1px solid #3a2226;border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
+.adFoster b{color:var(--red2)}
+body.is-pro .adFoster{display:none}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 16px 28px;line-height:1.7}
+/* Modal */
+.modal{position:fixed;inset:0;background:#000c;display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:30px 12px}
+.modal.on{display:flex}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:860px;width:100%;padding:22px;position:relative}
+.close{position:absolute;top:12px;right:12px;background:#2a2d34;width:34px;height:34px;padding:0;border-radius:50%}
+.box h2{font-size:20px;display:block}.box .sub{color:var(--muted);margin:-4px 0 16px;font-size:14px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.plan{background:var(--panel2);border:2px solid transparent;border-radius:14px;padding:16px;cursor:pointer;position:relative}
+.plan.sel{border-color:var(--red)}
+.plan.free{cursor:default;opacity:.85}
+.plan h4{margin:0 0 6px;font-size:15px}.plan .price{font-size:26px;font-weight:900}.plan .price small{font-size:13px;color:var(--muted);font-weight:500}
+.plan ul{padding-left:18px;margin:10px 0 0;font-size:12.5px;color:#cfd1d6;line-height:1.7}
+.plan .tagBest{position:absolute;top:-10px;right:12px;background:var(--red);font-size:10px;font-weight:800;border-radius:10px;padding:3px 8px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-top:6px}
+.form .full{grid-column:1/-1}
+.msg{font-size:13px;margin-top:10px;line-height:1.5}.msg.err{color:#ff8a8f}.msg.ok{color:var(--ok)}
+.envTag{display:inline-block;font-size:10px;font-weight:800;background:#3a2f12;color:var(--warn);border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:middle}
+.pendingBox{background:#1d1a10;border:1px solid #4b3d14;border-radius:12px;padding:14px;margin-top:14px;display:none}
+.pendingBox.on{display:block}
+details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-size:13px;color:#ccc}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:10px}.stage{grid-template-columns:1fr}.screen{order:-1}.plans{grid-template-columns:1fr}.form{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,1fr)}
+.cameraWrap,.screen{min-height:260px}video{min-height:260px}.reading{height:300px;font-size:28px;padding:130px 6% 150px}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo"><b>‹</b>F<b>›</b></div><div><span>FOSTER</span> TELEPROMPTER PRO<small>Apresente suas ideias com profissionalismo.</small></div></div>
+ <div class="hdr"><span class="badge" id="planBadge">GRÁTIS</span><button class="primary" id="goPro">Seja PRO</button></div>
+</header>
+
+<main>
+<section class="panel">
+ <h2>Roteiro</h2>
+ <label for="title">Nome do roteiro</label><input id="title" value="Meu roteiro" maxlength="60">
+ <label for="script">Texto para leitura</label>
+ <textarea id="script">Olá! Seja bem-vindo ao Foster Teleprompter PRO.
+
+Aqui você acompanha seu roteiro enquanto grava com a câmera do celular ou do computador.
+
+Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a lente.</textarea>
+ <div class="actions"><button class="primary" id="update">Atualizar texto</button><button id="save">Salvar</button><button id="newScript" class="ghost">Novo</button></div>
+
+ <h3>Meus roteiros <span class="hint" id="scriptCount"></span></h3>
+ <ul class="scripts" id="scriptList"></ul>
+
+ <h3>Ajustes de leitura</h3>
+ <label for="speed">Velocidade: <b id="speedVal">3</b></label><input id="speed" type="range" min="1" max="10" value="3">
+ <label for="font">Tamanho da letra: <b id="fontVal">30 px</b></label><input id="font" type="range" min="20" max="72" value="30">
+ <label class="check">Espelhar texto <input id="mirror" type="checkbox"></label>
+ <label class="check">Linha-guia de leitura <input id="guide" type="checkbox" checked></label>
+ <label class="check"><span>Contagem regressiva (3s)<span class="lock">PRO</span></span><input id="countdown" type="checkbox"></label>
+ <p class="hint" style="margin-top:14px">Atalhos: <b>Espaço</b> inicia/pausa · <b>R</b> reinicia · <b>↑/↓</b> velocidade.</p>
+</section>
+
+<section class="panel">
+ <h2>Estúdio de gravação <span class="hint" id="limitInfo"></span></h2>
+ <div class="stage">
+  <div class="cameraWrap front" id="camWrap"><video id="camera" autoplay muted playsinline></video><div class="camLabel" id="camLabel">PRÉVIA DA CÂMERA</div><div class="rec" id="recTimer">00:00</div><div class="count" id="count">3</div></div>
+  <div class="screen withGuide" id="screen"><div class="reading" id="reading"></div><div class="guide"></div><button class="fsBtn" id="fsBtn">⛶ Tela cheia</button></div>
+ </div>
+ <div class="controls">
+  <button id="cameraBtn" class="primary">Ativar câmera</button><button id="switchBtn">Trocar câmera</button>
+  <button id="playBtn">▶ Iniciar leitura</button><button id="pauseBtn">Ⅱ Pausar</button>
+  <button id="resetBtn">↥ Reiniciar</button><button id="recordBtn" class="primary" disabled>● Gravar</button>
+  <button id="stopBtn" disabled>■ Encerrar</button><button id="micBtn" class="ghost">🎤 Microfone: ligado</button>
+ </div>
+ <div class="status" id="status">Aguardando ativação da câmera. A leitura pode ser testada sem gravar.</div>
+
+ <h3>Gravações desta sessão</h3>
+ <div class="takes" id="takes"><p class="empty">Nenhuma gravação ainda. Os vídeos ficam só neste aparelho — baixe antes de fechar a página.</p></div>
+ <p class="hint" style="margin-top:12px">A gravação exige permissão de câmera/microfone e endereço seguro (HTTPS). O vídeo é gerado no próprio aparelho, nada é enviado para servidores.</p>
+</section>
+</main>
+
+<div class="adFoster" id="adFoster">
+ <div><b>Foster Engenharia &amp; Construção</b> — projetos, reformas e construção com responsabilidade técnica.</div>
+ <div><a href="https://wa.me/5524992096103" target="_blank" rel="noopener">WhatsApp (24) 99209-6103</a></div>
+</div>
+
+<footer>
+ Foster Teleprompter PRO · um produto <b>Foster Tech Soluções</b><br>
+ Wilson Foster · Engenheiro Civil · CREA/SP<br>
+ <a href="#" id="openRestore">Já sou assinante — recuperar acesso</a>
+</footer>
+
+<!-- Modal de planos -->
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+ <div class="box">
+  <button class="close" id="closeModal" aria-label="Fechar">✕</button>
+  <h2 id="mTitle">Escolha seu plano <span class="envTag" id="envTag" hidden>AMBIENTE DE TESTE</span></h2>
+  <p class="sub">Comece grátis. Libere tudo com o PRO — ativação automática após a confirmação do pagamento.</p>
+  <div class="plans" id="plans">
+   <div class="plan free"><h4>Grátis</h4><div class="price">R$ 0</div>
+    <ul><li>Teleprompter completo</li><li>Câmera frontal e traseira</li><li>Gravação de até 1 minuto</li><li>Até 3 roteiros salvos</li><li>Divulgação Foster na página</li></ul></div>
+   <div class="plan" data-plan="monthly"><h4>PRO Mensal</h4><div class="price" data-price="monthly">—</div>
+    <ul><li>Gravação sem limite de tempo</li><li>Roteiros ilimitados</li><li>Contagem regressiva</li><li>Sem divulgação na página</li><li>Cancele quando quiser</li></ul></div>
+   <div class="plan sel" data-plan="yearly"><span class="tagBest">MELHOR CUSTO-BENEFÍCIO</span><h4>PRO Anual</h4><div class="price" data-price="yearly">—</div>
+    <ul><li>Tudo do PRO Mensal</li><li>Pagamento único por ano</li><li id="yearSave">Economia em relação ao mensal</li></ul></div>
+  </div>
+
+  <form id="subForm" class="form" autocomplete="on">
+   <div class="full"><label for="fName">Nome completo</label><input id="fName" name="name" required autocomplete="name"></div>
+   <div><label for="fEmail">E-mail</label><input id="fEmail" name="email" type="email" required autocomplete="email"></div>
+   <div><label for="fCpf">CPF ou CNPJ</label><input id="fCpf" name="cpf" required inputmode="numeric" placeholder="Somente números"></div>
+   <div class="full actions"><button class="primary" type="submit" id="subBtn">Assinar PRO Anual</button></div>
+   <p class="hint full">Pagamento processado pelo Asaas (Pix, boleto ou cartão). O CPF é exigido pelo emissor da cobrança e serve também para recuperar seu acesso em outro aparelho.</p>
+  </form>
+  <div class="msg" id="subMsg"></div>
+
+  <div class="pendingBox" id="pendingBox">
+   <b>Aguardando pagamento</b>
+   <p class="hint" style="margin:6px 0 10px">Conclua o pagamento na fatura. Pix costuma liberar em poucos segundos; boleto pode levar até 3 dias úteis.</p>
+   <div class="actions"><a id="invoiceLink" target="_blank" rel="noopener"><button class="primary" type="button">Abrir fatura</button></a><button type="button" id="checkPay">Já paguei — verificar</button></div>
+  </div>
+
+  <details id="restoreBox">
+   <summary>Já sou assinante — recuperar acesso neste aparelho</summary>
+   <div class="form">
+    <div><label for="rEmail">E-mail da assinatura</label><input id="rEmail" type="email"></div>
+    <div><label for="rCpf">CPF ou CNPJ</label><input id="rCpf" inputmode="numeric"></div>
+    <div class="full actions"><button type="button" id="restoreBtn">Recuperar acesso</button></div>
+   </div>
+   <div class="msg" id="restoreMsg"></div>
+  </details>
+ </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const FREE_REC_LIMIT=60, FREE_SCRIPT_LIMIT=3;
+const LS={lic:'fosterLicense',cache:'fosterLicenseCache',scripts:'fosterScripts',prefs:'fosterPrefs'};
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+let stream=null,recorder=null,chunks=[],raf=null,last=0,playing=false,facing='user',micOn=true;
+let recStart=0,recInt=null,takes=[],isPro=false,selPlan='yearly',planData=null,apiOk=false;
+
+/* ---------- Leitura ---------- */
+function render(){$('reading').textContent=$('script').value||'Seu roteiro aparecerá aqui.';$('reading').scrollTop=0}
+function pause(){playing=false;if(raf)cancelAnimationFrame(raf);raf=null;last=0}
+function tick(t){if(!playing)return;if(!last)last=t;const dt=Math.min(t-last,50);last=t;const r=$('reading');r.scrollTop+=dt*Number($('speed').value)*.018*(Number($('font').value)/30);if(r.scrollTop+r.clientHeight>=r.scrollHeight-1){pause();return}raf=requestAnimationFrame(tick)}
+function play(){if(playing)return;playing=true;last=0;raf=requestAnimationFrame(tick)}
+function countdown(){return new Promise(res=>{if(!(isPro&&$('countdown').checked))return res();let n=3;const c=$('count');c.textContent=n;c.classList.add('on');const iv=setInterval(()=>{n--;if(n<=0){clearInterval(iv);c.classList.remove('on');res()}else c.textContent=n},1000)})}
+async function startReading(){if(playing)return;await countdown();play()}
+
+/* ---------- Câmera ---------- */
+async function startCamera(){
+ try{
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não liberou acesso à câmera. Abra a página por HTTPS.');
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:720}},audio:true});
+  stream.getAudioTracks().forEach(t=>t.enabled=micOn);
+  $('camera').srcObject=stream;$('recordBtn').disabled=false;$('cameraBtn').textContent='Reiniciar câmera';
+  $('camWrap').classList.toggle('front',facing==='user');$('camLabel').textContent=facing==='user'?'CÂMERA FRONTAL':'CÂMERA TRASEIRA';
+  setStatus('Câmera ativada. Confira o enquadramento antes de gravar.');
+ }catch(e){setStatus('Não foi possível ativar a câmera: '+e.message+' Verifique as permissões do navegador.')}
+}
+function setStatus(t,html){html?$('status').innerHTML=t:$('status').textContent=t}
+
+/* ---------- Gravação ---------- */
+function pickMime(){const list=['video/mp4;codecs=avc1,mp4a','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];if(!window.MediaRecorder)return null;return list.find(m=>MediaRecorder.isTypeSupported(m))||''}
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+async function startRecording(){
+ if(!stream)return;
+ const mime=pickMime();if(mime===null){setStatus('Este navegador não suporta gravação de vídeo.');return}
+ $('recordBtn').disabled=true;$('switchBtn').disabled=true;
+ await countdown();
+ chunks=[];
+ try{
+  recorder=new MediaRecorder(stream,mime?{mimeType:mime}:{});
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  recorder.onstop=finishTake;
+  recorder.start(1000);
+  recStart=Date.now();$('recTimer').classList.add('on');$('stopBtn').disabled=false;
+  recInt=setInterval(()=>{const s=(Date.now()-recStart)/1000;$('recTimer').textContent=fmt(s)+(isPro?'':' / 01:00');if(!isPro&&s>=FREE_REC_LIMIT){stopRecording(true)}},250);
+  play();
+  setStatus('<span class="recording">● GRAVANDO</span> — câmera registrando áudio e vídeo.'+(isPro?'':' No plano grátis a gravação encerra em 1 minuto.'),true);
+ }catch(e){$('recordBtn').disabled=false;$('switchBtn').disabled=false;setStatus('Falha ao iniciar gravação: '+e.message)}
+}
+function stopRecording(byLimit){
+ if(recorder&&recorder.state!=='inactive'){recorder._byLimit=!!byLimit;recorder.stop()}
+ clearInterval(recInt);$('recTimer').classList.remove('on');$('recordBtn').disabled=!stream;$('stopBtn').disabled=true;$('switchBtn').disabled=false;pause();
+}
+function finishTake(){
+ const type=recorder.mimeType||'video/webm',ext=type.includes('mp4')?'mp4':'webm';
+ const blob=new Blob(chunks,{type}),url=URL.createObjectURL(blob),dur=(Date.now()-recStart)/1000;
+ const name=($('title').value.trim()||'foster-teleprompter').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.'+ext;
+ if(!isPro){takes.forEach(t=>URL.revokeObjectURL(t.url));takes=[]}
+ takes.unshift({url,name,dur,size:blob.size});renderTakes();
+ setStatus(recorder._byLimit?'Limite de 1 minuto do plano grátis atingido. Seja PRO para gravar sem limite.':'Gravação finalizada. Toque em "Baixar" para salvar no aparelho.');
+ if(recorder._byLimit)openModal();
+}
+function renderTakes(){
+ const el=$('takes');if(!takes.length){el.innerHTML='<p class="empty">Nenhuma gravação ainda.</p>';return}
+ el.innerHTML='';takes.forEach((t,i)=>{const d=document.createElement('div');d.className='take';
+  d.innerHTML=`<video src="${t.url}" controls playsinline preload="metadata"></video><div><span>Take ${takes.length-i} · ${fmt(t.dur)} · ${(t.size/1048576).toFixed(1)} MB</span><a href="${t.url}" download="${t.name}">Baixar</a></div>`;el.appendChild(d)});
+ if(!isPro)el.insertAdjacentHTML('beforeend','<p class="hint">No plano grátis fica só a última gravação. <a href="#" onclick="openModal();return false">PRO guarda todos os takes da sessão.</a></p>');
+}
+
+/* ---------- Roteiros ---------- */
+function scripts(){return store.get(LS.scripts,{})}
+function renderScripts(){
+ const data=scripts(),keys=Object.keys(data),ul=$('scriptList');ul.innerHTML='';
+ $('scriptCount').textContent=isPro?`(${keys.length})`:`(${keys.length}/${FREE_SCRIPT_LIMIT})`;
+ if(!keys.length){ul.innerHTML='<li class="empty" style="background:none;padding:0">Nenhum roteiro salvo.</li>';return}
+ keys.forEach(k=>{const li=document.createElement('li');const s=document.createElement('span');s.textContent=k;s.title='Abrir';s.onclick=()=>{$('title').value=k;$('script').value=data[k];render();setStatus(`Roteiro "${k}" carregado.`)};
+  const b=document.createElement('button');b.textContent='Excluir';b.onclick=()=>{if(!confirm(`Excluir o roteiro "${k}"?`))return;const d=scripts();delete d[k];store.set(LS.scripts,d);renderScripts()};
+  li.append(s,b);ul.appendChild(li)});
+}
+function saveScript(){
+ const key=$('title').value.trim()||'Meu roteiro',data=scripts();
+ if(!isPro&&!(key in data)&&Object.keys(data).length>=FREE_SCRIPT_LIMIT){setStatus(`O plano grátis guarda até ${FREE_SCRIPT_LIMIT} roteiros. Exclua um ou seja PRO para roteiros ilimitados.`);openModal();return}
+ data[key]=$('script').value;store.set(LS.scripts,data);renderScripts();setStatus('Roteiro salvo neste aparelho.');
+}
+
+/* ---------- Licença PRO ---------- */
+function applyPlan(lic){
+ isPro=!!lic?.pro;document.body.classList.toggle('is-pro',isPro);
+ const b=$('planBadge');b.className='badge';
+ if(isPro){b.textContent='PRO';b.classList.add('pro');$('goPro').textContent='Minha assinatura';$('limitInfo').textContent=lic.paidUntil?'PRO válido até '+lic.paidUntil.split('-').reverse().join('/'):''}
+ else if(lic&&(lic.status==='pending'||lic.status==='overdue')){b.textContent=lic.status==='overdue'?'PAGAMENTO VENCIDO':'PAGAMENTO PENDENTE';b.classList.add('pending');$('goPro').textContent='Concluir pagamento';$('limitInfo').textContent='Grátis: gravação até 1 min'}
+ else{b.textContent='GRÁTIS';$('goPro').textContent='Seja PRO';$('limitInfo').textContent='Grátis: gravação até 1 min'}
+ if(!isPro)$('countdown').checked=false;
+ if(lic?.invoiceUrl&&!isPro){$('invoiceLink').href=lic.invoiceUrl;$('pendingBox').classList.add('on')}else $('pendingBox').classList.remove('on');
+ renderScripts();renderTakes();
+}
+async function api(path,opts={}){
+ const token=store.get(LS.lic,null);const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;
+ const res=await fetch(path,{...opts,headers});const data=await res.json().catch(()=>({}));
+ if(!res.ok)throw new Error(data.error||'Não foi possível concluir. Tente novamente.');return data;
+}
+async function refreshLicense(){
+ const cached=store.get(LS.cache,null);
+ // Uso offline: confia no cache só até a data já paga.
+ if(cached){const ok=cached.pro&&cached.paidUntil&&cached.paidUntil>=new Date().toISOString().slice(0,10);applyPlan({...cached,pro:ok})}
+ if(!store.get(LS.lic,null))return cached;
+ try{const lic=await api('/api/status');store.set(LS.cache,lic);applyPlan(lic);return lic}catch{return cached}
+}
+async function loadPlans(){
+ try{planData=await api('/api/plans');apiOk=true;
+  const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const m=planData.plans.find(p=>p.id==='monthly'),y=planData.plans.find(p=>p.id==='yearly');
+  document.querySelector('[data-price=monthly]').innerHTML=`${brl(m.price)}<small>/mês</small>`;
+  document.querySelector('[data-price=yearly]').innerHTML=`${brl(y.price)}<small>/ano</small>`;
+  const save=Math.round((1-y.price/(m.price*12))*100);if(save>0)$('yearSave').textContent=`Economize ${save}% em relação ao mensal`;
+  $('envTag').hidden=planData.env!=='sandbox';
+ }catch{apiOk=false;$('subMsg').className='msg err';$('subMsg').textContent='A assinatura PRO não está disponível neste endereço no momento.';$('subBtn').disabled=true}
+}
+function openModal(){$('modal').classList.add('on');if(!planData)loadPlans()}
+function closeModal(){$('modal').classList.remove('on')}
+function selectPlan(p){selPlan=p;document.querySelectorAll('.plan[data-plan]').forEach(el=>el.classList.toggle('sel',el.dataset.plan===p));$('subBtn').textContent=p==='monthly'?'Assinar PRO Mensal':'Assinar PRO Anual'}
+
+$('subForm').onsubmit=async e=>{
+ e.preventDefault();const msg=$('subMsg');msg.className='msg';msg.textContent='Gerando sua assinatura…';$('subBtn').disabled=true;
+ try{
+  const r=await api('/api/subscribe',{method:'POST',body:JSON.stringify({name:$('fName').value,email:$('fEmail').value,cpf:$('fCpf').value,plan:selPlan})});
+  store.set(LS.lic,r.token);store.set(LS.cache,r.license);applyPlan(r.license);
+  if(r.alreadyActive){msg.className='msg ok';msg.textContent='Você já tem uma assinatura PRO ativa. Acesso liberado neste aparelho!';return}
+  msg.className='msg ok';msg.textContent='Assinatura criada! Abra a fatura para concluir o pagamento.';
+  if(r.invoiceUrl){$('invoiceLink').href=r.invoiceUrl;$('pendingBox').classList.add('on');window.open(r.invoiceUrl,'_blank','noopener')}
+  startPolling();
+ }catch(err){msg.className='msg err';msg.textContent=err.message}finally{$('subBtn').disabled=!apiOk}
+};
+let pollIv=null;
+function startPolling(){clearInterval(pollIv);let n=0;pollIv=setInterval(async()=>{n++;const lic=await refreshLicense();if(lic?.pro||n>60){clearInterval(pollIv);if(lic?.pro){$('subMsg').className='msg ok';$('subMsg').textContent='Pagamento confirmado! O PRO já está liberado. 🎉'}}},5000)}
+$('checkPay').onclick=async()=>{const lic=await refreshLicense();const m=$('subMsg');if(lic?.pro){m.className='msg ok';m.textContent='Pagamento confirmado! O PRO já está liberado. 🎉'}else{m.className='msg';m.textContent='Ainda não recebemos a confirmação. Se pagou por Pix, aguarde alguns segundos e tente de novo.'}};
+$('restoreBtn').onclick=async()=>{const m=$('restoreMsg');m.className='msg';m.textContent='Verificando…';
+ try{const r=await api('/api/restore',{method:'POST',body:JSON.stringify({email:$('rEmail').value,cpf:$('rCpf').value})});store.set(LS.lic,r.token);store.set(LS.cache,r.license);applyPlan(r.license);
+  m.className='msg ok';m.textContent=r.license.pro?'Acesso PRO recuperado neste aparelho!':'Assinatura encontrada, mas o pagamento ainda não está confirmado.'}
+ catch(err){m.className='msg err';m.textContent=err.message}};
+
+/* ---------- Eventos ---------- */
+$('cameraBtn').onclick=startCamera;
+$('switchBtn').onclick=async()=>{facing=facing==='user'?'environment':'user';await startCamera()};
+$('micBtn').onclick=()=>{micOn=!micOn;$('micBtn').textContent='🎤 Microfone: '+(micOn?'ligado':'desligado');stream?.getAudioTracks().forEach(t=>t.enabled=micOn)};
+$('update').onclick=render;
+$('newScript').onclick=()=>{$('title').value='Novo roteiro';$('script').value='';render();$('script').focus()};
+$('save').onclick=saveScript;
+$('speed').oninput=e=>{$('speedVal').textContent=e.target.value;savePrefs()};
+$('font').oninput=e=>{$('fontVal').textContent=e.target.value+' px';$('reading').style.fontSize=e.target.value+'px';savePrefs()};
+$('mirror').onchange=e=>{$('screen').classList.toggle('mirror',e.target.checked);savePrefs()};
+$('guide').onchange=e=>{$('screen').classList.toggle('withGuide',e.target.checked);savePrefs()};
+$('countdown').onchange=e=>{if(e.target.checked&&!isPro){e.target.checked=false;openModal()}};
+$('playBtn').onclick=startReading;$('pauseBtn').onclick=pause;
+$('resetBtn').onclick=()=>{pause();$('reading').scrollTop=0};
+$('recordBtn').onclick=startRecording;$('stopBtn').onclick=()=>stopRecording(false);
+$('fsBtn').onclick=()=>{const s=$('screen');document.fullscreenElement?document.exitFullscreen():s.requestFullscreen?.().catch(()=>setStatus('Tela cheia não disponível neste navegador.'))};
+document.addEventListener('fullscreenchange',()=>$('fsBtn').textContent=document.fullscreenElement?'✕ Sair':'⛶ Tela cheia');
+$('goPro').onclick=openModal;$('closeModal').onclick=closeModal;
+$('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+document.querySelectorAll('.plan[data-plan]').forEach(el=>el.onclick=()=>selectPlan(el.dataset.plan));
+$('openRestore').onclick=e=>{e.preventDefault();openModal();$('restoreBox').open=true};
+document.addEventListener('keydown',e=>{
+ if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
+ if(e.key==='Escape')closeModal();
+ if(e.code==='Space'){e.preventDefault();playing?pause():startReading()}
+ if(e.key==='r'||e.key==='R'){pause();$('reading').scrollTop=0}
+ if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();const s=$('speed');s.value=Math.max(1,Math.min(10,Number(s.value)+(e.key==='ArrowUp'?1:-1)));s.oninput({target:s})}
+});
+function savePrefs(){store.set(LS.prefs,{speed:$('speed').value,font:$('font').value,mirror:$('mirror').checked,guide:$('guide').checked})}
+function loadPrefs(){const p=store.get(LS.prefs,null);if(!p)return;$('speed').value=p.speed;$('speedVal').textContent=p.speed;$('font').value=p.font;$('fontVal').textContent=p.font+' px';$('reading').style.fontSize=p.font+'px';$('mirror').checked=p.mirror;$('screen').classList.toggle('mirror',p.mirror);$('guide').checked=p.guide;$('screen').classList.toggle('withGuide',p.guide)}
+window.addEventListener('beforeunload',e=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
+
+render();loadPrefs();applyPlan(null);refreshLicense();
+if(new URLSearchParams(location.search).has('pro'))openModal();
+</script>
+</body>
+</html>

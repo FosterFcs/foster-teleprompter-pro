@@ -1,0 +1,14 @@
+{
+  "name": "foster-teleprompter-pro",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Foster Teleprompter PRO — Foster Tech Soluções",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
