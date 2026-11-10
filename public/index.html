@@ -93,6 +93,12 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 16px 28p
 .envTag{display:inline-block;font-size:10px;font-weight:800;background:#3a2f12;color:var(--warn);border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 .pendingBox{background:#1d1a10;border:1px solid #4b3d14;border-radius:12px;padding:14px;margin-top:14px;display:none}
 .pendingBox.on{display:block}
+.account{background:#121a14;border:1px solid #24452e;border-radius:14px;padding:16px;display:none}
+.account.on{display:block}.account h3{margin:0 0 8px;color:#fff;font-size:16px}
+.account p{margin:6px 0;font-size:13.5px;color:#cfd1d6}
+body.is-pro #plans,body.is-pro #subForm,body.is-pro #subMsg,body.is-pro #restoreBox,body.is-pro .box>.sub{display:none}
+.terms{display:flex;gap:8px;align-items:flex-start;color:#cfd1d6;font-size:12.5px;margin-top:12px}
+.terms input{margin-top:2px}
 details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
 summary{cursor:pointer;font-size:13px;color:#ccc}
 @media(max-width:900px){main{grid-template-columns:1fr;padding:10px}.stage{grid-template-columns:1fr}.screen{order:-1}.plans{grid-template-columns:1fr}.form{grid-template-columns:1fr}.controls{grid-template-columns:repeat(2,1fr)}
@@ -157,7 +163,7 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
 <footer>
  Foster Studio · Teleprompter e gravação · um produto <b>Foster Tech Soluções</b><br>
  Wilson Foster · Engenheiro Civil · CREA/SP<br>
- <a href="#" id="openRestore">Já sou assinante — recuperar acesso</a>
+ <a href="#" id="openRestore">Já sou assinante — recuperar acesso</a> · <a href="/termos.html">Termos e Privacidade</a>
 </footer>
 
 <!-- Modal de planos -->
@@ -166,6 +172,14 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
   <button class="close" id="closeModal" aria-label="Fechar">✕</button>
   <h2 id="mTitle">Escolha seu plano <span class="envTag" id="envTag" hidden>AMBIENTE DE TESTE</span></h2>
   <p class="sub">Comece grátis. Libere tudo com o PRO — ativação automática após a confirmação do pagamento.</p>
+  <div class="account" id="accountBox">
+   <h3>✅ Você é assinante Foster Studio PRO</h3>
+   <p id="accPlan"></p>
+   <p id="accUntil"></p>
+   <p id="accNote" class="hint"></p>
+   <p class="hint">Para cancelar ou tirar dúvidas sobre a assinatura, fale com a gente pelo <a href="https://wa.me/5524992096103?text=Ol%C3%A1!%20Sou%20assinante%20do%20Foster%20Studio%20PRO." target="_blank" rel="noopener">WhatsApp (24) 99209-6103</a> ou pelo e-mail <a href="mailto:comercial@fosterconstrucoes.com.br">comercial@fosterconstrucoes.com.br</a>. Ao cancelar, o PRO continua até o fim do período já pago.</p>
+   <div class="actions"><button type="button" id="logoutBtn" class="ghost">Sair deste aparelho</button></div>
+  </div>
   <div class="plans" id="plans">
    <div class="plan free"><h4>Grátis</h4><div class="price">R$ 0</div>
     <ul><li>Teleprompter completo</li><li>Câmera frontal e traseira</li><li>Gravação de até 1 minuto</li><li>Até 3 roteiros salvos</li><li>Divulgação Foster na página</li></ul></div>
@@ -179,6 +193,7 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
    <div class="full"><label for="fName">Nome completo</label><input id="fName" name="name" required autocomplete="name"></div>
    <div><label for="fEmail">E-mail</label><input id="fEmail" name="email" type="email" required autocomplete="email"></div>
    <div><label for="fCpf">CPF ou CNPJ</label><input id="fCpf" name="cpf" required inputmode="numeric" placeholder="Somente números"></div>
+   <label class="terms full"><input type="checkbox" id="fTerms" required> <span>Li e aceito os <a href="/termos.html" target="_blank">Termos de Uso e a Política de Privacidade</a>.</span></label>
    <div class="full actions"><button class="primary" type="submit" id="subBtn">Assinar PRO Anual</button></div>
    <p class="hint full">Pagamento processado pelo Asaas (Pix, boleto ou cartão). O CPF é exigido pelo emissor da cobrança e serve também para recuperar seu acesso em outro aparelho.</p>
   </form>
@@ -208,7 +223,7 @@ const FREE_REC_LIMIT=60, FREE_SCRIPT_LIMIT=3;
 const LS={lic:'fosterLicense',cache:'fosterLicenseCache',scripts:'fosterScripts',prefs:'fosterPrefs'};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 let stream=null,recorder=null,chunks=[],raf=null,last=0,playing=false,facing='user',micOn=true;
-let recStart=0,recInt=null,takes=[],isPro=false,selPlan='yearly',planData=null,apiOk=false;
+let curLic=null,recStart=0,recInt=null,takes=[],isPro=false,selPlan='yearly',planData=null,apiOk=false;
 
 /* ---------- Leitura ---------- */
 function render(){$('reading').textContent=$('script').value||'Seu roteiro aparecerá aqui.';$('reading').scrollTop=0}
@@ -290,7 +305,7 @@ function saveScript(){
 
 /* ---------- Licença PRO ---------- */
 function applyPlan(lic){
- isPro=!!lic?.pro;document.body.classList.toggle('is-pro',isPro);
+ isPro=!!lic?.pro;curLic=lic;document.body.classList.toggle('is-pro',isPro);fillAccount();
  const b=$('planBadge');b.className='badge';
  if(isPro){b.textContent='PRO';b.classList.add('pro');$('goPro').textContent='Minha assinatura';$('limitInfo').textContent=lic.paidUntil?'PRO válido até '+lic.paidUntil.split('-').reverse().join('/'):''}
  else if(lic&&(lic.status==='pending'||lic.status==='overdue')){b.textContent=lic.status==='overdue'?'PAGAMENTO VENCIDO':'PAGAMENTO PENDENTE';b.classList.add('pending');$('goPro').textContent='Concluir pagamento';$('limitInfo').textContent='Grátis: gravação até 1 min'}
@@ -320,6 +335,13 @@ async function loadPlans(){
   const save=Math.round((1-y.price/(m.price*12))*100);if(save>0)$('yearSave').textContent=`Economize ${save}% em relação ao mensal`;
   $('envTag').hidden=planData.env!=='sandbox';
  }catch{apiOk=false;$('subMsg').className='msg err';$('subMsg').textContent='A assinatura PRO não está disponível neste endereço no momento.';$('subBtn').disabled=true}
+}
+function fillAccount(){
+ const box=$('accountBox');if(!isPro||!curLic){box.classList.remove('on');$('mTitle').firstChild.textContent='Escolha seu plano ';return}
+ box.classList.add('on');$('mTitle').firstChild.textContent='Minha assinatura ';
+ $('accPlan').innerHTML='Plano: <b>'+(curLic.plan==='yearly'?'PRO Anual':'PRO Mensal')+'</b>'+(curLic.name?' · '+curLic.name:'');
+ $('accUntil').innerHTML=curLic.paidUntil?'Acesso garantido até <b>'+curLic.paidUntil.split('-').reverse().join('/')+'</b>':'';
+ $('accNote').textContent=curLic.status==='cancelled'?'Assinatura cancelada: o PRO segue ativo até a data acima.':'Renovação automática: a próxima fatura chega por e-mail antes do vencimento.';
 }
 function openModal(){$('modal').classList.add('on');if(!planData)loadPlans()}
 function closeModal(){$('modal').classList.remove('on')}
@@ -364,6 +386,7 @@ document.addEventListener('fullscreenchange',()=>$('fsBtn').textContent=document
 $('goPro').onclick=openModal;$('closeModal').onclick=closeModal;
 $('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
 document.querySelectorAll('.plan[data-plan]').forEach(el=>el.onclick=()=>selectPlan(el.dataset.plan));
+$('logoutBtn').onclick=()=>{if(!confirm('Remover o acesso PRO deste aparelho? Você pode recuperar depois com e-mail e CPF.'))return;store.del(LS.lic);store.del(LS.cache);applyPlan(null);closeModal()};
 $('openRestore').onclick=e=>{e.preventDefault();openModal();$('restoreBox').open=true};
 document.addEventListener('keydown',e=>{
  if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
