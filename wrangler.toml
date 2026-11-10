@@ -1,9 +1,10 @@
 # Foster Studio — Teleprompter e gravação · Foster Tech Soluções
 #
-# Worker de TESTE (sandbox) criado em 09/11 — já tem os segredos
-# ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN cadastrados no painel.
-# O endereço público foster-teleprompter-pro.*.workers.dev (V0.2) não é alterado.
-name = "frostfoster-teleprompter-api-sandboxy-rice-c068"
+# Worker oficial do Foster Studio (renomeado em 10/11; antes "frostfoster-teleprompter-api-sandboxy-rice-c068").
+# Segredos ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN ficam cadastrados no painel da Cloudflare.
+# Endereço: https://foster-studio.fosterconstrutora.workers.dev
+# A V0.2 antiga (foster-teleprompter-pro.*.workers.dev) não é alterada.
+name = "foster-studio"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
 keep_vars = true   # não apaga variáveis cadastradas pelo painel ao publicar
