@@ -153,9 +153,9 @@ async function restore(request, env) {
 /* ---------------- Webhook Asaas ---------------- */
 
 async function webhook(request, env) {
-  const expected = env.ASAAS_WEBHOOK_TOKEN;
+  const expected = (env.ASAAS_WEBHOOK_TOKEN || '').trim();
   if (!expected) return json({ error: 'Webhook não configurado.' }, 500); // falha fechada
-  const received = request.headers.get('asaas-access-token') || '';
+  const received = (request.headers.get('asaas-access-token') || '').trim();
   if (!(await safeEqual(received, expected))) return json({ error: 'Não autorizado.' }, 401);
 
   const evt = await readJson(request);
