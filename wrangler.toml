@@ -6,6 +6,7 @@
 name = "frostfoster-teleprompter-api-sandboxy-rice-c068"
 main = "src/worker.js"
 compatibility_date = "2025-09-01"
+keep_vars = true   # não apaga variáveis cadastradas pelo painel ao publicar
 
 [assets]
 directory = "./public"
