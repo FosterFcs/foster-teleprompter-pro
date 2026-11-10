@@ -116,6 +116,7 @@ async function subscribe(request, env) {
   const invoiceUrl = pays?.data?.[0]?.invoiceUrl || null;
 
   const lic = {
+    env: currentEnv(env),
     token, name, email, cpf, plan, customerId,
     subscriptionId: sub.id, status: 'pending', paidUntil: null,
     invoiceUrl, updatedAt: new Date().toISOString(),
@@ -285,8 +286,12 @@ async function asaas(env, method, path, body) {
 
 /* ---------------- KV ---------------- */
 
+function currentEnv(env) { return env.ASAAS_ENV === 'production' ? 'production' : 'sandbox'; }
 async function getLicense(env, token) {
-  return env.PAYMENTS_KV.get(`lic:${token}`, 'json');
+  const lic = await env.PAYMENTS_KV.get(`lic:${token}`, 'json');
+  // Licenças de teste (sandbox) não valem em produção, e vice-versa.
+  if (!lic || (lic.env || 'sandbox') !== currentEnv(env)) return null;
+  return lic;
 }
 async function saveLicense(env, lic) {
   await env.PAYMENTS_KV.put(`lic:${lic.token}`, JSON.stringify(lic));

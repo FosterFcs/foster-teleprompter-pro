@@ -19,7 +19,7 @@ binding = "PAYMENTS_KV"          # namespace TELEPROMPTER_PRO_PAYMENTS
 id = "b0f16785966147f5a30233a9e76fc98a"
 
 [vars]
-ASAAS_ENV = "sandbox"          # mude para "production" só depois dos testes
+ASAAS_ENV = "production"       # PRODUÇÃO desde 10/11/2026 (Sandbox testado e aprovado)
 PRICE_MONTHLY = "9.90"         # preços definidos em 09/11 — ajuste se mudar
 PRICE_YEARLY = "79.90"
 GRACE_DAYS = "3"               # dias de tolerância após o vencimento
