@@ -134,7 +134,37 @@ async function status(request, env) {
   if (!/^[a-f0-9]{48}$/.test(token)) return json({ pro: false, status: 'none' });
   const lic = await getLicense(env, token);
   if (!lic) return json({ pro: false, status: 'none' });
+  await syncFromAsaas(env, lic);
   return json(publicLicense(lic, env));
+}
+
+/* Consulta direta ao Asaas: garante a liberação mesmo se o webhook falhar.
+   Só roda quando a licença não está ativa, no máximo 1 vez a cada 15 s. */
+async function syncFromAsaas(env, lic) {
+  if (isActive(lic, env) || !lic.subscriptionId || !env.ASAAS_API_KEY) return;
+  const now = Date.now();
+  if (lic.lastSyncAt && now - lic.lastSyncAt < 15000) return;
+  lic.lastSyncAt = now;
+  try {
+    const pays = await asaas(env, 'GET', `/subscriptions/${lic.subscriptionId}/payments?limit=12`);
+    const paid = (pays.data || []).filter(p => ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(p.status) && !p.deleted);
+    if (paid.length) {
+      for (const p of paid) {
+        const until = addDays(p.dueDate || todayBR(), PLAN_DAYS[lic.plan] || 31);
+        if (!lic.paidUntil || until > lic.paidUntil) lic.paidUntil = until;
+      }
+      if (lic.status !== 'cancelled') lic.status = 'active';
+      lic.lastEvent = 'SYNC_PAID';
+    } else {
+      const open = (pays.data || []).find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+      if (open?.invoiceUrl) lic.invoiceUrl = open.invoiceUrl;
+      if (open?.status === 'OVERDUE') lic.status = 'overdue';
+    }
+    lic.updatedAt = new Date().toISOString();
+  } catch (e) {
+    console.error('sync Asaas falhou', e?.message);
+  }
+  await saveLicense(env, lic);
 }
 
 /* ---------------- Recuperar acesso ---------------- */
@@ -147,6 +177,7 @@ async function restore(request, env) {
   const lic = token ? await getLicense(env, token) : null;
   // Mesma resposta para "não existe" e "CPF não confere", para não revelar cadastros.
   if (!lic || lic.cpf !== cpf) throw publicError('Não encontramos assinatura com esses dados.', 404);
+  await syncFromAsaas(env, lic);
   return json({ token: lic.token, license: publicLicense(lic, env) });
 }
 
