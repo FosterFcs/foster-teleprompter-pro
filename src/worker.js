@@ -156,7 +156,18 @@ async function webhook(request, env) {
   const expected = (env.ASAAS_WEBHOOK_TOKEN || '').trim();
   if (!expected) return json({ error: 'Webhook não configurado.' }, 500); // falha fechada
   const received = (request.headers.get('asaas-access-token') || '').trim();
-  if (!(await safeEqual(received, expected))) return json({ error: 'Não autorizado.' }, 401);
+  if (!(await safeEqual(received, expected))) {
+    // Diagnóstico sem expor o token: tamanho + 6 primeiros caracteres do SHA-256 de cada um
+    const fp = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))]
+      .slice(0, 3).map(x => x.toString(16).padStart(2, '0')).join('');
+    return json({
+      error: 'Não autorizado.',
+      diagnostico: {
+        token_recebido_do_asaas: { tamanho: received.length, digital: received ? await fp(received) : null },
+        token_na_cloudflare: { tamanho: expected.length, digital: await fp(expected) },
+      },
+    }, 401);
+  }
 
   const evt = await readJson(request);
   if (evt.id) {
