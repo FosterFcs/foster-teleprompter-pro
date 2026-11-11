@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101114">
+<meta name="theme-color" content="#0d0e11">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Foster Studio">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Foster Studio — teleprompter e gravação. Apresente suas ideias com profissionalismo. Teleprompter com câmera e gravação direto no navegador.">
 <title>Foster Studio — Teleprompter e gravação | Foster Tech Soluções</title>
 <style>
@@ -98,6 +105,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 16px 28p
 .envTag{display:inline-block;font-size:10px;font-weight:800;background:#3a2f12;color:var(--warn);border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:middle}
 .pendingBox{background:#1d1a10;border:1px solid #4b3d14;border-radius:12px;padding:14px;margin-top:14px;display:none}
 .pendingBox.on{display:block}
+#installBtn{padding:8px 12px;font-size:13px}
+.iosTip{position:fixed;left:12px;right:12px;bottom:14px;background:#1f2228;border:1px solid #3a3d45;border-radius:16px;padding:16px 18px;z-index:60;box-shadow:0 10px 30px #000c;display:none;font-size:14px;line-height:1.55}
+.iosTip.on{display:block}.iosTip b{color:#fff}.iosTip button{margin-top:10px;width:100%}
 .account{background:#121a14;border:1px solid #24452e;border-radius:14px;padding:16px;display:none}
 .account.on{display:block}.account h3{margin:0 0 8px;color:#fff;font-size:16px}
 .account p{margin:6px 0;font-size:13.5px;color:#cfd1d6}
@@ -116,7 +126,7 @@ main>section.studio{order:-1}.brand small{display:none}.plans{grid-template-colu
 <body>
 <header>
  <div class="brand"><div class="logo"><b>‹</b>F<b>›</b></div><div><span>FOSTER</span> STUDIO<small>Teleprompter e gravação · Apresente suas ideias com profissionalismo.</small></div></div>
- <div class="hdr"><span class="badge" id="planBadge">GRÁTIS</span><button class="primary" id="goPro">Seja PRO</button></div>
+ <div class="hdr"><button class="ghost" id="installBtn" hidden>📲 Instalar app</button><span class="badge" id="planBadge">GRÁTIS</span><button class="primary" id="goPro">Seja PRO</button></div>
 </header>
 
 <main>
@@ -174,6 +184,14 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
  Wilson Foster · Engenheiro Civil · CREA/SP<br>
  <a href="#" id="openRestore">Já sou assinante — recuperar acesso</a> · <a href="/termos.html">Termos e Privacidade</a>
 </footer>
+
+<div class="iosTip" id="iosTip" role="dialog" aria-label="Como instalar no iPhone">
+ <b>Instalar o Foster Studio no iPhone</b><br>
+ 1. Toque no botão <b>Compartilhar</b> (o quadrado com a seta para cima) na barra do Safari.<br>
+ 2. Escolha <b>Adicionar à Tela de Início</b>.<br>
+ 3. Toque em <b>Adicionar</b>. O ícone do Foster Studio aparece junto dos seus apps.
+ <button type="button" id="iosTipClose">Entendi</button>
+</div>
 
 <!-- Modal de planos -->
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
@@ -410,6 +428,21 @@ function loadPrefs(){const p=store.get(LS.prefs,null);if(!p)return;$('speed').va
 window.addEventListener('beforeunload',e=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
 
 render();loadPrefs();applyPlan(null);refreshLicense();
+
+/* ---------- App instalável (PWA) ---------- */
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(!isStandalone())$('installBtn').hidden=false});
+window.addEventListener('appinstalled',()=>{$('installBtn').hidden=true;deferredPrompt=null;setStatus('Foster Studio instalado! Agora ele abre direto pelo ícone na sua tela.')});
+if(isIOS&&!isStandalone())$('installBtn').hidden=false;
+$('installBtn').onclick=async()=>{
+ if(deferredPrompt){deferredPrompt.prompt();const r=await deferredPrompt.userChoice;if(r.outcome==='accepted')$('installBtn').hidden=true;deferredPrompt=null;return}
+ if(isIOS){$('iosTip').classList.add('on');return}
+ setStatus('Para instalar, abra o menu do navegador (⋮) e escolha "Instalar app" ou "Adicionar à tela inicial".');
+};
+$('iosTipClose').onclick=()=>$('iosTip').classList.remove('on');
 if(new URLSearchParams(location.search).has('pro'))openModal();
 </script>
 </body>

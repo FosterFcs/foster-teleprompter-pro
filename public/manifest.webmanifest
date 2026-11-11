@@ -1,0 +1,19 @@
+{
+  "name": "Foster Studio — Teleprompter e gravação",
+  "short_name": "Foster Studio",
+  "description": "Teleprompter com câmera: leia o roteiro olhando para a lente e grave o vídeo no próprio aparelho.",
+  "lang": "pt-BR",
+  "id": "/",
+  "start_url": "/?origem=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0e11",
+  "theme_color": "#0d0e11",
+  "categories": ["productivity", "photo", "business"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
