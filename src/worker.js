@@ -29,7 +29,7 @@
  * para não gerar cobranças indevidas.
  */
 
-const OFFICIAL_URL = 'https://foster-studio.fosterconstrutora.workers.dev';
+const OFFICIAL_URL = 'https://studio.engfoster.com.br';
 
 const ASAAS_URL = {
   sandbox: 'https://api-sandbox.asaas.com/v3',
@@ -49,6 +49,11 @@ export default {
     const url = new URL(request.url);
     // Endereço antigo (V0.2) → endereço oficial do Foster Studio
     if (url.hostname.startsWith('foster-teleprompter-pro.')) {
+      return Response.redirect(OFFICIAL_URL + url.pathname + url.search, 301);
+    }
+    // workers.dev → domínio próprio (menos webhook e API, que continuam respondendo aqui)
+    if (url.hostname.startsWith('foster-studio.') && url.hostname.endsWith('.workers.dev') &&
+        !url.pathname.startsWith('/api/') && url.pathname !== '/webhook') {
       return Response.redirect(OFFICIAL_URL + url.pathname + url.search, 301);
     }
     if (url.pathname === '/webhook' && request.method === 'POST') return await webhook(request, env).catch(e => json({ error: 'Erro interno.' }, 500));

@@ -1,4 +1,6 @@
 # Foster Studio — Teleprompter e gravação · V0.3 (comercial)
+
+**Endereço oficial:** https://studio.engfoster.com.br (o workers.dev redireciona para ele; webhook do Asaas continua em foster-studio.fosterconstrutora.workers.dev/webhook)
 *(antigo Foster Teleprompter PRO)*
 **Apresente suas ideias com profissionalismo.** · Um produto Foster Tech Soluções
 
