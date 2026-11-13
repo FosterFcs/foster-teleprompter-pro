@@ -81,6 +81,10 @@ video{width:100%;height:100%;object-fit:cover;display:block;background:#050505}
 .take video{min-height:0;height:110px;object-fit:cover}
 .take div{padding:8px;display:flex;justify-content:space-between;align-items:center;gap:6px}
 .take a{font-weight:800;text-decoration:none}
+.take .ok{color:var(--ok)}
+.takeActions{display:flex;gap:6px;padding:0 8px 8px!important;flex-wrap:wrap}
+.tbtn{flex:1;min-width:70px;text-align:center;font-size:12px;font-weight:800;padding:8px 6px;border-radius:9px;background:#2b2e35;color:#fff;border:0;cursor:pointer;text-decoration:none;display:inline-block}
+.tbtn.primary{background:var(--red)}.tbtn.danger{background:transparent;border:1px solid #5a2a2e;color:#ff8a8f}
 .hint{font-size:11.5px;color:var(--muted);line-height:1.5}
 .adFoster{margin:0 16px 16px;max-width:1208px;margin-inline:auto;background:linear-gradient(90deg,#1a1215,#17191e);border:1px solid #3a2226;border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px}
 .adFoster b{color:var(--red2)}
@@ -250,15 +254,24 @@ const FREE_REC_LIMIT=60, FREE_SCRIPT_LIMIT=3;
 const LS={lic:'fosterLicense',cache:'fosterLicenseCache',scripts:'fosterScripts',prefs:'fosterPrefs'};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 let stream=null,recorder=null,chunks=[],raf=null,last=0,playing=false,facing='user',micOn=true;
-let curLic=null,recStart=0,recInt=null,takes=[],isPro=false,selPlan='yearly',planData=null,apiOk=false;
+let takeSeq=0,wakeLock=null,curLic=null,recStart=0,recInt=null,takes=[],isPro=false,selPlan='yearly',planData=null,apiOk=false;
 
 /* ---------- Leitura ---------- */
 function render(){$('reading').textContent=$('script').value||'Seu roteiro aparecerá aqui.';$('reading').scrollTop=0}
-function pause(){playing=false;if(raf)cancelAnimationFrame(raf);raf=null;last=0}
+function pause(){playing=false;if(raf)cancelAnimationFrame(raf);raf=null;last=0;if(!(recorder&&recorder.state==='recording'))keepAwake(false)}
 function tick(t){if(!playing)return;if(!last)last=t;const dt=Math.min(t-last,50);last=t;const r=$('reading');r.scrollTop+=dt*Number($('speed').value)*.018*(Number($('font').value)/30);if(r.scrollTop+r.clientHeight>=r.scrollHeight-1){pause();return}raf=requestAnimationFrame(tick)}
-function play(){if(playing)return;playing=true;last=0;raf=requestAnimationFrame(tick)}
+function play(){if(playing)return;playing=true;last=0;raf=requestAnimationFrame(tick);keepAwake(true)}
 function countdown(){return new Promise(res=>{if(!(isPro&&$('countdown').checked))return res();let n=3;const c=$('count');c.textContent=n;c.classList.add('on');const iv=setInterval(()=>{n--;if(n<=0){clearInterval(iv);c.classList.remove('on');res()}else c.textContent=n},1000)})}
 async function startReading(){if(playing)return;await countdown();play()}
+
+/* ---------- Tela sempre acesa durante leitura e gravação ---------- */
+async function keepAwake(on){
+ try{
+  if(on&&!wakeLock&&'wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}
+  if(!on&&wakeLock){await wakeLock.release();wakeLock=null}
+ }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&(playing||(recorder&&recorder.state==='recording')))keepAwake(true)});
 
 /* ---------- Câmera ---------- */
 async function startCamera(){
@@ -280,6 +293,7 @@ const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60
 async function startRecording(){
  if(!stream)return;
  const mime=pickMime();if(mime===null){setStatus('Este navegador não suporta gravação de vídeo.');return}
+ if(!isPro&&takes.length&&!takes[0].downloaded&&!confirm('No plano grátis fica só a última gravação.\n\nO vídeo anterior ainda não foi baixado e será substituído. Gravar mesmo assim?'))return;
  $('recordBtn').disabled=true;$('switchBtn').disabled=true;
  await countdown();
  chunks=[];
@@ -290,7 +304,7 @@ async function startRecording(){
   recorder.start(1000);
   recStart=Date.now();$('recTimer').classList.add('on');$('stopBtn').disabled=false;
   recInt=setInterval(()=>{const s=(Date.now()-recStart)/1000;$('recTimer').textContent=fmt(s)+(isPro?'':' / 01:00');if(!isPro&&s>=FREE_REC_LIMIT){stopRecording(true)}},250);
-  play();
+  play();keepAwake(true);
   setStatus('<span class="recording">● GRAVANDO</span> — câmera registrando áudio e vídeo.'+(isPro?'':' No plano grátis a gravação encerra em 1 minuto.'),true);
  }catch(e){$('recordBtn').disabled=false;$('switchBtn').disabled=false;setStatus('Falha ao iniciar gravação: '+e.message)}
 }
@@ -301,17 +315,42 @@ function stopRecording(byLimit){
 function finishTake(){
  const type=recorder.mimeType||'video/webm',ext=type.includes('mp4')?'mp4':'webm';
  const blob=new Blob(chunks,{type}),url=URL.createObjectURL(blob),dur=(Date.now()-recStart)/1000;
- const name=($('title').value.trim()||'foster-studio').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.'+ext;
+ const name=($('title').value.trim()||'foster-studio').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+localStamp()+'.'+ext;
  if(!isPro){takes.forEach(t=>URL.revokeObjectURL(t.url));takes=[]}
- takes.unshift({url,name,dur,size:blob.size});renderTakes();
+ takes.unshift({id:++takeSeq,n:takeSeq,url,name,dur,size:blob.size,type,downloaded:false});renderTakes();keepAwake(false);
  setStatus(recorder._byLimit?'Limite de 1 minuto do plano grátis atingido. Seja PRO para gravar sem limite.':'Gravação finalizada. Toque em "Baixar" para salvar no aparelho.');
  if(recorder._byLimit)openModal();
 }
+function localStamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}s`}
 function renderTakes(){
  const el=$('takes');if(!takes.length){el.innerHTML='<p class="empty">Nenhuma gravação ainda.</p>';return}
- el.innerHTML='';takes.forEach((t,i)=>{const d=document.createElement('div');d.className='take';
-  d.innerHTML=`<video src="${t.url}" controls playsinline preload="metadata"></video><div><span>Take ${takes.length-i} · ${fmt(t.dur)} · ${(t.size/1048576).toFixed(1)} MB</span><a href="${t.url}" download="${t.name}">Baixar</a></div>`;el.appendChild(d)});
- if(!isPro)el.insertAdjacentHTML('beforeend','<p class="hint">No plano grátis fica só a última gravação. <a href="#" onclick="openModal();return false">PRO guarda todos os takes da sessão.</a></p>');
+ el.innerHTML='';
+ takes.forEach(t=>{const d=document.createElement('div');d.className='take';
+  d.innerHTML=`<video src="${t.url}" controls playsinline preload="metadata"></video>
+   <div><span>Take ${t.n} · ${fmt(t.dur)} · ${(t.size/1048576).toFixed(1)} MB${t.downloaded?' · <b class="ok">baixado</b>':''}</span></div>
+   <div class="takeActions"><a class="tbtn primary" href="${t.url}" download="${t.name}" data-act="dl">⬇ Baixar</a>
+   ${canShare(t)?'<button class="tbtn" data-act="share">↗ Enviar</button>':''}
+   <button class="tbtn danger" data-act="del">🗑 Excluir</button></div>`;
+  d.querySelector('[data-act=dl]').onclick=()=>{t.downloaded=true;setTimeout(renderTakes,300)};
+  const sh=d.querySelector('[data-act=share]');if(sh)sh.onclick=()=>shareTake(t);
+  d.querySelector('[data-act=del]').onclick=()=>deleteTake(t.id);
+  el.appendChild(d)});
+ if(takes.length>1)el.insertAdjacentHTML('beforeend','<div class="takeActions" style="grid-column:1/-1"><button class="tbtn danger" id="delAll">🗑 Excluir todas as gravações</button></div>');
+ const da=$('delAll');if(da)da.onclick=()=>{const pend=takes.filter(t=>!t.downloaded).length;
+  const aviso=pend===1?' Uma delas ainda não foi baixada e será perdida.':pend>1?` ${pend} delas ainda não foram baixadas e serão perdidas.`:'';
+  if(!confirm(`Excluir as ${takes.length} gravações desta sessão?`+aviso))return;
+  takes.forEach(t=>URL.revokeObjectURL(t.url));takes=[];renderTakes();setStatus('Gravações excluídas.')};
+ if(!isPro)el.insertAdjacentHTML('beforeend','<p class="hint" style="grid-column:1/-1">No plano grátis fica só a última gravação. <a href="#" onclick="openModal();return false">PRO guarda todos os takes da sessão.</a></p>');
+}
+function deleteTake(id){
+ const t=takes.find(x=>x.id===id);if(!t)return;
+ if(!confirm(t.downloaded?`Excluir o Take ${t.n} desta lista?`:`O Take ${t.n} ainda não foi baixado e será perdido. Excluir mesmo assim?`))return;
+ URL.revokeObjectURL(t.url);takes=takes.filter(x=>x.id!==id);renderTakes();setStatus(`Take ${t.n} excluído.`);
+}
+function canShare(t){try{return !!(navigator.canShare&&navigator.canShare({files:[new File([new Blob()],t.name,{type:t.type})]}))}catch(e){return false}}
+async function shareTake(t){
+ try{const blob=await fetch(t.url).then(r=>r.blob());await navigator.share({files:[new File([blob],t.name,{type:t.type})],title:'Vídeo gravado no Foster Studio'});t.downloaded=true;renderTakes()}
+ catch(e){if(e.name!=='AbortError')setStatus('Não foi possível enviar. Use o botão Baixar.')}
 }
 
 /* ---------- Roteiros ---------- */
@@ -425,7 +464,10 @@ document.addEventListener('keydown',e=>{
 });
 function savePrefs(){store.set(LS.prefs,{speed:$('speed').value,font:$('font').value,mirror:$('mirror').checked,guide:$('guide').checked})}
 function loadPrefs(){const p=store.get(LS.prefs,null);if(!p)return;$('speed').value=p.speed;$('speedVal').textContent=p.speed;$('font').value=p.font;$('fontVal').textContent=p.font+' px';setFont(p.font);$('mirror').checked=p.mirror;$('screen').classList.toggle('mirror',p.mirror);$('guide').checked=p.guide;$('screen').classList.toggle('withGuide',p.guide)}
-window.addEventListener('beforeunload',e=>{if(stream)stream.getTracks().forEach(t=>t.stop())});
+window.addEventListener('beforeunload',e=>{
+ if(takes.some(t=>!t.downloaded)||(recorder&&recorder.state==='recording')){e.preventDefault();e.returnValue='Você tem gravações que ainda não foram baixadas.';return e.returnValue}
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+});
 
 render();loadPrefs();applyPlan(null);refreshLicense();
 
