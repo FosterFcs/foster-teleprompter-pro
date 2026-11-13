@@ -9,6 +9,12 @@ main = "src/worker.js"
 compatibility_date = "2025-09-01"
 keep_vars = true   # não apaga variáveis cadastradas pelo painel ao publicar
 
+# Domínio próprio (o workers.dev continua ativo: o webhook do Asaas usa ele)
+workers_dev = true
+routes = [
+  { pattern = "studio.engfoster.com.br", custom_domain = true }
+]
+
 [assets]
 directory = "./public"
 binding = "ASSETS"
