@@ -18,7 +18,7 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
 |---|---|---|
 | Teleprompter, espelhamento, linha-guia, tela cheia | ✓ | ✓ |
 | Câmera frontal/traseira | ✓ | ✓ |
-| Gravação | até 1 minuto | sem limite |
+| Gravação | até 1min30s | sem limite |
 | Takes guardados na sessão | só o último | todos |
 | Roteiros salvos | até 3 | ilimitados |
 | Contagem regressiva 3s | — | ✓ |

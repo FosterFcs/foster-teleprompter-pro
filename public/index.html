@@ -213,7 +213,7 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
   </div>
   <div class="plans" id="plans">
    <div class="plan free"><h4>Grátis</h4><div class="price">R$ 0</div>
-    <ul><li>Teleprompter completo</li><li>Câmera frontal e traseira</li><li>Gravação de até 1 minuto</li><li>Até 3 roteiros salvos</li><li>Divulgação Foster na página</li></ul></div>
+    <ul><li>Teleprompter completo</li><li>Câmera frontal e traseira</li><li>Gravação de até 1min30s</li><li>Até 3 roteiros salvos</li><li>Divulgação Foster na página</li></ul></div>
    <div class="plan" data-plan="monthly"><h4>PRO Mensal</h4><div class="price" data-price="monthly">—</div>
     <ul><li>Gravação sem limite de tempo</li><li>Roteiros ilimitados</li><li>Contagem regressiva</li><li>Sem divulgação na página</li><li>Cancele quando quiser</li></ul></div>
    <div class="plan sel" data-plan="yearly"><span class="tagBest">MELHOR CUSTO-BENEFÍCIO</span><h4>PRO Anual</h4><div class="price" data-price="yearly">—</div>
@@ -250,7 +250,7 @@ Ajuste a velocidade, posicione o aparelho e fale naturalmente olhando para a len
 
 <script>
 const $=id=>document.getElementById(id);
-const FREE_REC_LIMIT=60, FREE_SCRIPT_LIMIT=3;
+const FREE_REC_LIMIT=90, FREE_SCRIPT_LIMIT=3, FREE_REC_TXT='1min30s';
 const LS={lic:'fosterLicense',cache:'fosterLicenseCache',scripts:'fosterScripts',prefs:'fosterPrefs'};
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 let stream=null,recorder=null,chunks=[],raf=null,last=0,playing=false,facing='user',micOn=true;
@@ -303,9 +303,9 @@ async function startRecording(){
   recorder.onstop=finishTake;
   recorder.start(1000);
   recStart=Date.now();$('recTimer').classList.add('on');$('stopBtn').disabled=false;
-  recInt=setInterval(()=>{const s=(Date.now()-recStart)/1000;$('recTimer').textContent=fmt(s)+(isPro?'':' / 01:00');if(!isPro&&s>=FREE_REC_LIMIT){stopRecording(true)}},250);
+  recInt=setInterval(()=>{const s=(Date.now()-recStart)/1000;$('recTimer').textContent=fmt(s)+(isPro?'':' / '+fmt(FREE_REC_LIMIT));if(!isPro&&s>=FREE_REC_LIMIT){stopRecording(true)}},250);
   play();keepAwake(true);
-  setStatus('<span class="recording">● GRAVANDO</span> — câmera registrando áudio e vídeo.'+(isPro?'':' No plano grátis a gravação encerra em 1 minuto.'),true);
+  setStatus('<span class="recording">● GRAVANDO</span> — câmera registrando áudio e vídeo.'+(isPro?'':' No plano grátis a gravação encerra em '+FREE_REC_TXT+'.'),true);
  }catch(e){$('recordBtn').disabled=false;$('switchBtn').disabled=false;setStatus('Falha ao iniciar gravação: '+e.message)}
 }
 function stopRecording(byLimit){
@@ -318,7 +318,7 @@ function finishTake(){
  const name=($('title').value.trim()||'foster-studio').replace(/[^\w\-]+/g,'-').toLowerCase()+'-'+localStamp()+'.'+ext;
  if(!isPro){takes.forEach(t=>URL.revokeObjectURL(t.url));takes=[]}
  takes.unshift({id:++takeSeq,n:takeSeq,url,name,dur,size:blob.size,type,downloaded:false});renderTakes();keepAwake(false);
- setStatus(recorder._byLimit?'Limite de 1 minuto do plano grátis atingido. Seja PRO para gravar sem limite.':'Gravação finalizada. Toque em "Baixar" para salvar no aparelho.');
+ setStatus(recorder._byLimit?'Limite de '+FREE_REC_TXT+' do plano grátis atingido. Seja PRO para gravar sem limite.':'Gravação finalizada. Toque em "Baixar" para salvar no aparelho.');
  if(recorder._byLimit)openModal();
 }
 function localStamp(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}s`}
@@ -374,8 +374,8 @@ function applyPlan(lic){
  isPro=!!lic?.pro;curLic=lic;document.body.classList.toggle('is-pro',isPro);fillAccount();
  const b=$('planBadge');b.className='badge';
  if(isPro){b.textContent='PRO';b.classList.add('pro');$('goPro').textContent='Minha assinatura';$('limitInfo').textContent=lic.paidUntil?'PRO válido até '+lic.paidUntil.split('-').reverse().join('/'):''}
- else if(lic&&(lic.status==='pending'||lic.status==='overdue')){b.textContent=lic.status==='overdue'?'PAGAMENTO VENCIDO':'PAGAMENTO PENDENTE';b.classList.add('pending');$('goPro').textContent='Concluir pagamento';$('limitInfo').textContent='Grátis: gravação até 1 min'}
- else{b.textContent='GRÁTIS';$('goPro').textContent='Seja PRO';$('limitInfo').textContent='Grátis: gravação até 1 min'}
+ else if(lic&&(lic.status==='pending'||lic.status==='overdue')){b.textContent=lic.status==='overdue'?'PAGAMENTO VENCIDO':'PAGAMENTO PENDENTE';b.classList.add('pending');$('goPro').textContent='Concluir pagamento';$('limitInfo').textContent='Grátis: gravação até '+FREE_REC_TXT}
+ else{b.textContent='GRÁTIS';$('goPro').textContent='Seja PRO';$('limitInfo').textContent='Grátis: gravação até '+FREE_REC_TXT}
  if(!isPro)$('countdown').checked=false;
  if(lic?.invoiceUrl&&!isPro){$('invoiceLink').href=lic.invoiceUrl;$('pendingBox').classList.add('on')}else $('pendingBox').classList.remove('on');
  renderScripts();renderTakes();
