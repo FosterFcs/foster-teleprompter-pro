@@ -83,4 +83,4 @@ wrangler.toml       → configuração do Worker (KV, variáveis, preços)
 - O formato do vídeo depende do navegador: MP4 quando houver suporte (Safari, Chrome recente), senão WebM.
 
 ---
-Wilson Foster · Engenheiro Civil · CREA/SP — Foster Tech Soluções
+Wilson Foster · Engenheiro Civil — Foster Tech Soluções
